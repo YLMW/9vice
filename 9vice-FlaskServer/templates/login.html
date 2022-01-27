@@ -8,6 +8,9 @@
     <div class="d-flex justify-content-center align-items-center">
         <div class="bg-light p-5 rounded w-50">
             <form action="{{ url_for('auth.login') }}" method="POST">
+                <div class="raw-fluid text-center">
+                    <img class="mb-4" src="../static/logo.svg" alt="" width="100" height="auto">
+                </div>
                 <h1 class="h3 mb-3 fw-normal text-center">Connexion</h1>
 
                 {% if erreur %}
