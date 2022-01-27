@@ -30,7 +30,7 @@ def login():
         password = escape(request.form.get('password'))
 
         # TODO -> probleme remember TRUE mais non coché
-        doRemember = True if escape(request.form.get('rememberme')) is not None else False
+        doRemember = True if escape(request.form.get('rememberme')) == 'remember-me' is not None else False
 
         # TODO -> remove cette feature de dev
         allData = 'login: ' + loginUsernameMail + ' / password: ' + password + ' / remember: ' + str(doRemember)
