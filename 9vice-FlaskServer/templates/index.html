@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% set index_active = 'active'%}
+{% set title = 'Index'%}
+
+{% block content %}
+
+    <div class="album bg-light rounded">
+        <div class="container py-2">
+            <h1 class="h3 mb-3 fw-normal text-center">Page d'accueil</h1>
+
+            <div>
+                {{ readmeContent | safe }}
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

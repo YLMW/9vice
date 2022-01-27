@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% set register_active = 'active'%}
+{% set title = 'Enregistrement'%}
+
+{% block content %}
+
+    <div class="d-flex justify-content-center align-items-center">
+        <div class="bg-light p-5 rounded w-50">
+            <form action="{{ url_for('auth.register') }}" method="POST">
+                <h1 class="h3 mb-3 fw-normal text-center">S'enregistrer</h1>
+
+                {% if erreur %}
+                    <div class="alert alert-danger" role="alert">
+                        {{ erreur }}
+                    </div>
+                {% endif %}
+
+                <div class="form-floating my-2">
+                    <input type="text" class="form-control" id="username"  name="username" placeholder="John360" required>
+                    <label for="username">Nom d'utilisateur</label>
+                </div>
+
+                <div class="form-floating my-2">
+                    <input type="email" class="form-control" id="email" name="email" placeholder="john.doe@example.com" required>
+                    <label for="email">Addresse mail</label>
+                </div>
+
+                <div class="form-floating my-2">
+                    <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+                    <label for="password">Mot de passe</label>
+                </div>
+
+                <div class="form-floating my-2">
+                    <input type="password" class="form-control" id="passwordConfirm" name="passwordConfirm" placeholder="Password" required>
+                    <label for="passwordConfirm">Confirmation du mot de passe</label>
+                </div>
+
+                <button class="w-100 btn btn-lg btn-primary my-3" type="submit">S'enregistrer</button>
+            </form>
+            <div class="raw-fluid text-center">
+                <small class="text-muted">Déjà inscrit ? <a href="{{ url_for('auth.login') }}" class="link-secondary">Se connecter</a></small>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

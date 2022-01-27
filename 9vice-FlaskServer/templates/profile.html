@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% set profile_active = 'active'%}
+{% set title = 'Profil'%}
+
+{% block content %}
+
+    <div class="album bg-light rounded">
+        <div class="container py-2">
+            <h1 class="h3 mb-3 fw-normal text-center">Profil de {{ user.username }}</h1>
+        </div>
+    </div>
+
+{% endblock %}
