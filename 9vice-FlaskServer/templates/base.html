@@ -2,7 +2,7 @@
 <html lang="fr">
 
 {# TODO -> remove cette feature de dev #}
-{% set user = {'username': 'Bernard'} %}
+{% set user = {'username': 'Bernard', 'isAdmin': True} %}
 {# {% set user = '' %} -> dans le cas où on veut la vue non connecte #}
 {# {% set user = {'username': 'Bernard'} %} -> dans le cas où on veut la vue connecte #}
 
@@ -42,6 +42,12 @@
 
                     <li class="nav-item">
                         <a class="nav-link {{ profile_active }}" aria-current="page" href="{{ url_for('main.profile') }}">Mon profil</a>
+                    </li>
+                {% endif %}
+
+                {% if user.isAdmin %}
+                    <li class="nav-item">
+                        <a class="nav-link {{ admin_active }}" aria-current="page" href="{{ url_for('main.adminPanel') }}">Panel admin</a>
                     </li>
                 {% endif %}
             </ul>

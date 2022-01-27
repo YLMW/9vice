@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% set admin_active = 'active' %}
+{% set title = 'Panel administrateur' %}
+
+{% block content %}
+
+    <div class="album bg-light rounded">
+        <div class="container py-2">
+            <h1 class="h3 mb-3 fw-normal text-center">Panel administrateur</h1>
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+                <table class="table my-3 table-bordered">
+                    <thead>
+                    <tr>
+                        <th scope="col">Nom d'utilisateur</th>
+                        <th scope="col">Addresse email</th>
+                        <th scope="col">Action</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for i in range(11) %}
+
+                        <tr>
+                            <td>User {{ i }}</td>
+                            <td>Mail {{ i }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-sm btn-danger">Supprimer</button>
+                                </div>
+                            </td>
+                        </tr>
+
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

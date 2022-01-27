@@ -57,3 +57,8 @@ def add():
                   ' / Audio: ' + str(isAudioDevice) + ' / Video: ' + str(isVideoDevice)
 
         return render_template('addDevice.html', erreur=allData)
+
+
+@main.route('/adminPanel')
+def adminPanel():
+    return render_template('adminPanel.html')
