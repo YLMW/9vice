@@ -2,8 +2,6 @@ import psycopg2
 from dotenv import load_dotenv
 import os
 
-from pymysql import NULL
-from sqlalchemy import true
 
 load_dotenv()
 
