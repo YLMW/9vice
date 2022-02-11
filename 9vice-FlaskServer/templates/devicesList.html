@@ -22,8 +22,8 @@
                                 <p class="card-text">Content : {{ device.content | safe | default('defaut', True) }}</p>
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div class="btn-group">
-                                        {% for j in range(5) %}
-                                            <button type="button" class="btn btn-sm btn-outline-primary" disabled>Btn {{ j }}</button>
+                                        {% for j in range(3) %}
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="window.location = '{{ url_for('video.test') }}'">Btn {{ j }}</button>
                                         {% endfor %}
                                     </div>
                                     <small class="text-muted">[Status : {{ device.status | safe | default('defaut', True) }}]</small>

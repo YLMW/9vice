@@ -5,6 +5,7 @@ from flask import Flask, render_template
 # Import des blueprints de routage
 from routes.main import main
 from routes.auth import auth
+from routes.video import video
 
 
 # Creation de l'appli
@@ -13,6 +14,7 @@ app = Flask(__name__, template_folder='templates/')
 # Ajout des routages blueprint
 app.register_blueprint(main)
 app.register_blueprint(auth)
+app.register_blueprint(video)
 
 
 # Interception de l'erreur 404
