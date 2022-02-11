@@ -3,3 +3,4 @@
 9vice-FlaskServer/routes/__pycache__
 
 .idea/*
+9vice-FlaskServer/.env

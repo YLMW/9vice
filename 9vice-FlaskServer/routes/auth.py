@@ -1,10 +1,11 @@
 # Routes pour l'auth
 # Import des libs python
+import re
 import string
+
 
 from flask import Blueprint, render_template, request
 from markupsafe import escape
-import re
 
 # Creation du blueprint
 auth = Blueprint('auth', __name__)
@@ -20,8 +21,8 @@ def login():
 
         if not isValidMail(loginUsernameMail) and not isValidUsername(loginUsernameMail):
             return render_template('login.html', erreur='Nom d\'utilisateur / Addresse mail incorrect')
-        else:
-            loginType = 'mail' if loginUsernameMail.__contains__('@') else 'username'
+
+        loginType = 'mail' if loginUsernameMail.__contains__('@') else 'username'
 
         if (loginType == 'mail' and not isRegistredMail(loginUsernameMail)) \
                 or (loginType == 'username' and isRegistredUsername(loginUsernameMail)):
@@ -30,7 +31,7 @@ def login():
         password = escape(request.form.get('password'))
 
         # TODO -> probleme remember TRUE mais non coché
-        doRemember = True if escape(request.form.get('rememberme')) == 'remember-me' is not None else False
+        doRemember = True if escape(request.form.get('rememberme')) == 'remember-me' else False
 
         # TODO -> remove cette feature de dev
         allData = 'login: ' + loginUsernameMail + ' / password: ' + password + ' / remember: ' + str(doRemember)
@@ -46,7 +47,7 @@ def register():
         email = escape(request.form.get('email'))
         if not isValidMail(email):
             return render_template('register.html', erreur='Email incorrect')
-        if isRegistredMail(email):
+        if requestDB.isRegistredMail(email):
             return render_template('register.html', erreur='Email déjà enregistré')
 
         username = escape(request.form.get('username'))
@@ -87,11 +88,3 @@ def isSamePassword(password, passwordConf):
     return password == passwordConf
 
 
-def isRegistredMail(mail):
-    # TODO
-    return False
-
-
-def isRegistredUsername(username):
-    # TODO
-    pass
