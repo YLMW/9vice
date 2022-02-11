@@ -1,0 +1,9 @@
+psycopg2
+flask
+aiohttp
+aiortc
+python3-gi
+gir1.2-webkit-4.0
+libwebkit2gtk-4.0-37
+python-dotenv
+python-decouple
