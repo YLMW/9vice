@@ -6,9 +6,14 @@ import os
 load_dotenv()
 
 class Requester:
+    
 
     def __init__(self):
-        connection = self.db_connect(os.environ.get("USERNAME"), os.environ.get("PASSWORD"))
+       
+        USERNAME = os.getenv("DB_USERNAME")
+        PASSWORD = os.getenv("DB_PASSWORD")
+        print(USERNAME, PASSWORD)
+        connection = self.db_connect(USERNAME, PASSWORD)
         cursor = connection.cursor()
 
     ## =================================
@@ -23,7 +28,7 @@ class Requester:
                         password=PASSWORD,
                         host="127.0.0.1",
                         port="5432",
-                        database="9vice"
+                        database="vice"
             )
             return connection
         except:
