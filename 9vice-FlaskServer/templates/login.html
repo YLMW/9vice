@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% set login_active = 'active'%}
+{% set title = 'Login'%}
+
+{% block content %}
+
+    <div class="d-flex justify-content-center align-items-center">
+        <div class="bg-light p-5 rounded w-50">
+            <form action="{{ url_for('auth.login') }}" method="POST">
+                <div class="raw-fluid text-center">
+                    <img class="mb-4" src="../static/logo.svg" alt="" width="100" height="auto">
+                </div>
+                <h1 class="h3 mb-3 fw-normal text-center">Connexion</h1>
+
+                {% if erreur %}
+                    <div class="alert alert-danger" role="alert">
+                        {{ erreur }}
+                    </div>
+                {% endif %}
+
+                <div class="form-floating my-2">
+                    <input type="text" class="form-control" id="login" placeholder="john.doe@example.com" name="login" required>
+                    <label for="login">Nom d'utilisateur / Addresse email</label>
+                </div>
+
+                <div class="form-floating my-2">
+                    <input type="password" class="form-control" id="password" placeholder="Password" name="password" required>
+                    <label for="password">Mot de passe</label>
+                </div>
+
+                <div class="checkbox my-3">
+                    <label>
+                        <input type="checkbox" value="remember-me" name="rememberme"> Remember me
+                    </label>
+                </div>
+
+                <button class="w-100 btn btn-lg btn-primary my-3" type="submit">Login</button>
+
+            </form>
+            <div class="raw-fluid text-center">
+                <small class="text-muted">Pas encore inscrit ? <a href="{{ url_for('auth.register') }}" class="link-secondary">S'enregistrer</a></small>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
