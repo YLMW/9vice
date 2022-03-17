@@ -1,17 +1,12 @@
 import psycopg2
-from dotenv import find_dotenv, load_dotenv
+from dotenv import load_dotenv
 import os
-
-from sqlalchemy import true
-from zmq import device
-
 
 
 class Requester:
 
-
     def __init__(self):
-        env_path = os.getcwd()+"/requester/.env"
+        env_path = os.getcwd() + "/requester/.env"
         load_dotenv(dotenv_path=env_path)
         USERNAME = os.getenv("DB_USERNAME")
         PASSWORD = os.getenv("DB_PASSWORD")
@@ -26,18 +21,16 @@ class Requester:
     def db_connect(self, USERNAME: str, PASSWORD: str):
         try:
             connection = psycopg2.connect(
-                        user=USERNAME,
-                        password=PASSWORD,
-                        host="127.0.0.1",
-                        port="5432",
-                        database="vice"
+                user=USERNAME,
+                password=PASSWORD,
+                host="127.0.0.1",
+                port="5432",
+                database="vice"
             )
             return connection
         except:
             print("[CRITICAL] Connection can not be established with database.")
             return None
-
-
 
     # Ferme la connexion avec la base de données
     def db_close(self):
@@ -60,8 +53,6 @@ class Requester:
             self.connection.commit()
             return False
 
-        
-
     # Supprime un utilisateur dans la base de données
     # RAJOUTER UN RETOUR 
     def del_user(self, id_user: int) -> bool:
@@ -76,20 +67,18 @@ class Requester:
 
     # Log in an user
     # return tuple with user's informations
-    def login_user(self, login : str,  type : str, hash : str) -> tuple:
+    def login_user(self, login: str, type: str, hash: str) -> tuple:
         try:
             sql_name = """SELECT * FROM device.users WHERE username= %s AND password=%s"""
             sql_mail = """SELECT * FROM device.users WHERE mail= %s AND password=%s"""
-            if(type=="mail"):
+            if (type == "mail"):
                 self.cursor.execute(sql_mail, (login, hash))
-            elif(type=="username"):
+            elif (type == "username"):
                 self.cursor.execute(sql_name, (login, hash))
-            
+
             return self.cursor.fetchone()
         except:
             return ()
-        
-
 
     # Récupére la list des utilisateurs dans la base de données 
     def list_users(self) -> list:
@@ -115,10 +104,10 @@ class Requester:
             self.connection.commit()
             return False
 
-
     # Insert un nouveau device dans la base de données
-    def insert_device(self, user_id: int, name: str, isCamera: bool, isMicro: bool, isFolder: bool, pb_key: str) -> bool:
-        
+    def insert_device(self, user_id: int, name: str, isCamera: bool, isMicro: bool, isFolder: bool,
+                      pb_key: str) -> bool:
+
         try:
             sql = """INSERT INTO device.devices (name, id_user, camera, micro, folder, public_key) 
                     VALUES (%s, %s, %s, %s, %s, %s)"""
@@ -128,7 +117,6 @@ class Requester:
         except:
             self.connection.commit()
             return False
-
 
     # Compte le nombre de devices pour un utilisateur
     def count_devices(self, id: int) -> int:
@@ -150,7 +138,6 @@ class Requester:
         except:
             return []
 
-
     ## ================================
     ##      HISTORY
     ## ================================
@@ -163,8 +150,7 @@ class Requester:
             return self.cursor.fetchall()
         except:
             return []
+
     # Récupére la dernière connexion d'un device donné d'un utilisateur
     def get_latest_con(self, login: str, name: str):
         pass
-
-
