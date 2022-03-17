@@ -2,6 +2,7 @@
 # Import des libs python
 from flask import Blueprint, render_template, request
 from markupsafe import escape
+from requester.request import Requester
 import markdown
 from pygments.formatters.html import HtmlFormatter
 
@@ -14,7 +15,7 @@ main = Blueprint('main', __name__)
 def index():
     formatter = HtmlFormatter(style="emacs", full=True, cssclass="codehilite")
     css_string = formatter.get_style_defs()
-    readmeFile = open("README.md", 'r')
+    readmeFile = open("../README.md", 'r')
     mdTemplateString = markdown.markdown(readmeFile.read(), extensions=['markdown.extensions.fenced_code',
                                                                         'markdown.extensions.codehilite'])
     md_css_string = "<style>" + css_string + "</style>"
@@ -25,6 +26,7 @@ def index():
 @main.route('/profile')
 def profile():
     return render_template('profile.html')
+
 
 
 @main.route('/list')

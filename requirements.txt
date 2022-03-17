@@ -10,3 +10,4 @@ python-decouple
 MarkupSafe~=2.1.1
 Markdown~=3.3.6
 Pygments~=2.11.2
+
