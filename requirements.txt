@@ -1,5 +1,13 @@
-psycopg2
-flask
+psycopg2~=2.9.3
+flask~=2.0.3
+aiohttp
+aiortc
 python3-gi
-python-dotenv
+gir1.2-webkit-4.0
+libwebkit2gtk-4.0-37
+python-dotenv~=0.19.2
 python-decouple
+MarkupSafe~=2.1.1
+Markdown~=3.3.6
+Pygments~=2.11.2
+

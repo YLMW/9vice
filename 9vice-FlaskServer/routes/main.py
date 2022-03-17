@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request
 from markupsafe import escape
 from requester.request import Requester
 import markdown
-from pygments.formatters import HtmlFormatter
+from pygments.formatters.html import HtmlFormatter
 
 # Creation blueprint
 main = Blueprint('main', __name__)
