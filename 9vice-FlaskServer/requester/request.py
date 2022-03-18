@@ -6,7 +6,7 @@ import os
 class Requester:
 
     def __init__(self):
-        env_path = os.getcwd() + "/requester/.env"
+        env_path = os.getcwd() + "/9vice-FlaskServer/requester/.env"
         load_dotenv(dotenv_path=env_path)
         USERNAME = os.getenv("DB_USERNAME")
         PASSWORD = os.getenv("DB_PASSWORD")

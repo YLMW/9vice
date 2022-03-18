@@ -3,13 +3,15 @@
 import re
 import string
 
-from requester.request import Requester
+from ..requester.request import Requester
 from flask import Blueprint, render_template, request
 from markupsafe import escape
 
 # Creation du blueprint
 auth = Blueprint('auth', __name__)
 dbReq = Requester()
+
+loggedUsersInfos = {}
 
 
 # Definition des routes
@@ -21,23 +23,24 @@ def login():
         loginUsernameMail = escape(request.form.get('login'))
 
         if not isValidMail(loginUsernameMail) and not isValidUsername(loginUsernameMail):
-            return render_template('login.html', erreur='Nom d\'utilisateur / Addresse mail incorrect')
+            return render_template('login.html', erreur='Nom d\'utilisateur / Addresse mail non valide')
 
         loginType = 'mail' if loginUsernameMail.__contains__('@') else 'username'
 
-        if (loginType == 'mail' and not isRegistredMail(loginUsernameMail)) \
-                or (loginType == 'username' and isRegistredUsername(loginUsernameMail)):
-            return render_template('login.html', erreur='Nom d\'utilisateur / Addresse mail inconnu')
-
         password = escape(request.form.get('password'))
 
-        # TODO -> probleme remember TRUE mais non coché
-        doRemember = True if escape(request.form.get('rememberme')) == 'remember-me' else False
+        userInfos = dbReq.login_user(loginUsernameMail, loginType, password)
 
-        # TODO -> remove cette feature de dev
-        allData = 'login: ' + loginUsernameMail + ' / password: ' + password + ' / remember: ' + str(doRemember)
+        if userInfos:
+            # Login valid
+            # TODO -> session cookie + hash de mot de passe
+            loggedUsersInfos[userInfos[0]] = userInfos
+            print(loggedUsersInfos)
+            return render_template('index.html')
+        else:
+            # Login invalid
+            return render_template('login.html', erreur='Identifiant / mot de passe incorrect')
 
-        return render_template('login.html', erreur=allData)
 
 
 @auth.route('/register', methods=['GET', 'POST'])
@@ -48,26 +51,27 @@ def register():
         email = escape(request.form.get('email'))
         if not isValidMail(email):
             return render_template('register.html', erreur='Email incorrect')
-        if requestDB.isRegistredMail(email):
-            return render_template('register.html', erreur='Email déjà enregistré')
 
         username = escape(request.form.get('username'))
         if not isValidUsername(username):
-            return render_template('register.html', erreur='Nom d\'utilisateur incorrect (charactères autorisés = A-Z, a-z, 0-9)')
-        if isRegistredUsername(username):
-            return render_template('register.html', erreur='Nom d\'utilisateur déjà pris')
+            return render_template('register.html',
+                                   erreur='Nom d\'utilisateur incorrect (charactères autorisés = A-Z, a-z, 0-9)')
 
         password = escape(request.form.get('password'))
         passwordConfirm = escape(request.form.get('passwordConfirm'))
+
         if not isSamePassword(password, passwordConfirm):
             return render_template('register.html', erreur='Les mots de passe ne correspondent pas')
 
-        # TODO -> Faire politique password
+        # TODO -> Faire et verif politique password
 
-        # TODO -> remove feature dev
-        allData = 'email: ' + email + ' / pass: ' + password + ' / passConfirm: ' + passwordConfirm + ' / username: ' + username
+        # TODO -> Hash the pass
+        hashed = password
 
-        return render_template('register.html', erreur=allData)
+        if dbReq.insert_user(username, email, hashed):
+            return render_template('index.html')
+        else:
+            return render_template('register.html', erreur='Informations incorrectes')
 
 
 @auth.route('/logout')
@@ -77,8 +81,7 @@ def logout():
 
 # Verification funcs
 def isValidMail(mail):
-    # TODO -> regex de m**** qui ne valide pas marc@ens.uvsq.fr -> changer la regex
-    return True if re.search("^[a-z0-9]+[._]?[a-z0-9]+[@]\w+[.]\w{2,3}$", mail) else False
+    return True if re.search(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", mail) else False
 
 
 def isValidUsername(username):
@@ -87,5 +90,3 @@ def isValidUsername(username):
 
 def isSamePassword(password, passwordConf):
     return password == passwordConf
-
-
