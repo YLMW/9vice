@@ -2,7 +2,7 @@
 # Import des libs python
 from flask import Blueprint, render_template, request
 from markupsafe import escape
-from requester.request import Requester
+# from requester.request import Requester
 import markdown
 from pygments.formatters.html import HtmlFormatter
 
@@ -64,3 +64,7 @@ def add():
 @main.route('/adminPanel')
 def adminPanel():
     return render_template('adminPanel.html')
+@main.route('/websocket')
+def websock():
+    return render_template('websocket.html')
+

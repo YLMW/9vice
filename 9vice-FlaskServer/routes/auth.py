@@ -3,13 +3,13 @@
 import re
 import string
 
-from requester.request import Requester
+# from requester.request import Requester
 from flask import Blueprint, render_template, request
 from markupsafe import escape
 
 # Creation du blueprint
 auth = Blueprint('auth', __name__)
-dbReq = Requester()
+# dbReq = Requester()
 
 
 # Definition des routes
