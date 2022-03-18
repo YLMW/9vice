@@ -9,29 +9,39 @@
         <div class="container py-2">
             <h1 class="h3 mb-3 fw-normal text-center">Panel administrateur</h1>
             <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+                {% if erreur %}
+                    <div class="alert alert-danger" role="alert">
+                        {{ erreur }}
+                    </div>
+                {% endif %}
+                {% if success %}
+                    <div class="alert alert-success" role="alert">
+                        {{ success }}
+                    </div>
+                {% endif %}
                 <table class="table my-3 table-bordered">
                     <thead>
                     <tr>
+                        <th scope="col">ID</th>
                         <th scope="col">Nom d'utilisateur</th>
                         <th scope="col">Addresse email</th>
-                        <th scope="col">Nombre de device</th>
                         <th scope="col">Action</th>
                     </tr>
                     </thead>
                     <tbody>
-                    {% for i in range(11) %}
-
+                    {% for user in userList %}
                         <tr>
-                            <td>User {{ i }}</td>
-                            <td>Mail {{ i }}</td>
-                            <td>{{ i }}</td>
+                            <td>{{ user[0] }}</td>
+                            <td>{{ user[1] }}</td>
+                            <td>{{ user[2] }}</td>
                             <td>
-                                <div class="btn-group">
-                                    <button type="button" class="btn btn-sm btn-danger">Supprimer</button>
-                                </div>
+                                <form action="{{ url_for('main.adminPanel') }}" method="POST">
+                                    <div class="btn-group">
+                                        <button type="submit" name="delUserByID" class="btn btn-sm btn-danger" value="{{ user[0] }}">Supprimer</button>
+                                    </div>
+                                </form>
                             </td>
                         </tr>
-
                     {% endfor %}
                     </tbody>
                 </table>

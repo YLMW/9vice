@@ -8,6 +8,7 @@ from pygments.formatters.html import HtmlFormatter
 
 # Creation blueprint
 main = Blueprint('main', __name__)
+dbReq = Requester()
 
 
 # Definition des routes
@@ -26,7 +27,6 @@ def index():
 @main.route('/profile')
 def profile():
     return render_template('profile.html')
-
 
 
 @main.route('/list')
@@ -61,6 +61,19 @@ def add():
         return render_template('addDevice.html', erreur=allData)
 
 
-@main.route('/adminPanel')
+@main.route('/adminPanel', methods=['GET', 'POST'])
 def adminPanel():
-    return render_template('adminPanel.html')
+    if request.method == 'GET':
+        users = dbReq.list_users()
+        return render_template('adminPanel.html', userList=users)
+    else:
+        # TODO -> verifier demande qui est bien d'un admin
+
+        idToDel = request.form['delUserByID']
+        if dbReq.del_user(int(idToDel)):
+            users = dbReq.list_users()
+            return render_template('adminPanel.html', userList=users, success="Utilisateur supprime")
+        else:
+            users = dbReq.list_users()
+            return render_template('adminPanel.html', userList=users, erreur="L'utilisateur n'a pas pu etre supprime")
+
