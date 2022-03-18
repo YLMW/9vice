@@ -1,13 +1,103 @@
 {% extends "base.html" %}
 
-{% set profile_active = 'active'%}
-{% set title = 'Profil'%}
+{% set profile_active = 'active' %}
+{% set title = 'Profil' %}
 
 {% block content %}
 
     <div class="album bg-light rounded">
         <div class="container py-2">
-            <h1 class="h3 mb-3 fw-normal text-center">Profil de {{ user.username }}</h1>
+            <h1 class="h1 mb-3 fw-normal text-center">Profil de {{ userLogged.username }}</h1>
+
+            <div class="container py-2 px-2">
+                <h3 class="h3">Informations personnelles</h3>
+                <p class="fw-normal">ID : {{ userLogged.id }}</p>
+                <p class="fw-normal">Nom d'utilisateur : {{ userLogged.username }}</p>
+                <p class="fw-normal">Adresse email : {{ userLogged.mail }}</p>
+                {% if userLogged.isAdmin %}
+                    <p class="fw-normal">Type de compte : <span class="text-danger">ADMINISTRATEUR</span></p>
+                {% else %}
+                    <p class="fw-normal">Type de compte : <span>Utilisateur</span></p>
+                {% endif %}
+                <hr>
+                <h3 class="h3">Gestion des devices</h3>
+                <p class="fw-normal">Nombre de device(s) : {{ deviceCount }}</p>
+                {% if erreur %}
+                    <div class="alert alert-danger" role="alert">
+                        {{ erreur }}
+                    </div>
+                {% endif %}
+                {% if success %}
+                    <div class="alert alert-success" role="alert">
+                        {{ success }}
+                    </div>
+                {% endif %}
+                <table class="table my-3 table-bordered">
+                    <thead>
+                    <tr>
+                        <th scope="col">Nom de device</th>
+                        <th scope="col">Dossier</th>
+                        <th scope="col">Audio</th>
+                        <th scope="col">Video</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Supprimer</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for userDevice in userDevices %}
+
+                        <tr>
+                            <td>{{ userDevice[1] }}</td>
+                            <td>
+                                <div class="input-group-text">
+                                    <input class="form-check-input  mx-auto my-auto" type="checkbox" value=""
+                                           aria-label=""
+                                            {% if  userDevice[4] %}
+                                           checked
+                                            {% endif %}
+                                           disabled
+                                    >
+                                </div>
+                            </td>
+                            <td>
+                                <div class="input-group-text">
+                                    <input class="form-check-input mx-auto my-auto" type="checkbox" value=""
+                                           aria-label=""
+                                            {% if  userDevice[3] %}
+                                           checked
+                                            {% endif %}
+                                           disabled
+                                    >
+                                </div>
+                            </td>
+                            <td>
+                                <div class="input-group-text">
+                                    <input class="form-check-input  mx-auto my-auto" type="checkbox" value=""
+                                           aria-label=""
+                                            {% if  userDevice[2] %}
+                                           checked
+                                            {% endif %}
+                                           disabled
+                                    >
+                                </div>
+                            </td>
+                            <td>Pas le budget !</td>
+                            <td>
+                                <form action="{{ url_for('main.profile') }}" method="POST">
+                                    <div class="btn-group">
+                                        <button type="submit" name="delDeviceByID" class="btn btn-sm btn-danger"
+                                                value="{{ userDevice[0] }}">Supprimer
+                                        </button>
+                                    </div>
+                                </form>
+                            </td>
+                        </tr>
+
+                    {% endfor %}
+                    </tbody>
+                </table>
+
+            </div>
         </div>
     </div>
 

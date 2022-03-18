@@ -7,5 +7,5 @@ import
 9vice-FlaskServer/routes/__pycache__
 
 .idea/*
-9vice-FlaskServer/.env
+9vice-FlaskServer/crypto/.env
 venv/*

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% set addDevice_active = 'active'%}
-{% set title = 'Ajout device'%}
+{% set addDevice_active = 'active' %}
+{% set title = 'Ajout device' %}
 
 {% block content %}
 
@@ -11,40 +11,50 @@
                 <div class="raw-fluid text-center">
                     <img class="mb-4" src="../static/logo.svg" alt="" width="100" height="auto">
                 </div>
-                <h1 class="h3 mb-3 fw-normal text-center">Ajouter un device</h1>
+                <h1 class="h1 mb-3 fw-normal text-center">Ajouter un device</h1>
 
                 {% if erreur %}
                     <div class="alert alert-danger" role="alert">
                         {{ erreur }}
                     </div>
                 {% endif %}
+                {% if success %}
+                    <div class="alert alert-success" role="alert">
+                        {{ success }}
+                    </div>
+                {% endif %}
 
                 <div class="form-floating my-2">
-                    <input type="text" class="form-control" id="deviceName" placeholder="deviceName" name="deviceName">
+                    <input type="text" class="form-control" id="deviceName" placeholder="deviceName" name="deviceName"
+                           required>
                     <label for="deviceName">Nom du device</label>
-                </div>
-
-                <div class="form-floating my-2">
-                    <input type="text" class="form-control" id="deviceIp" placeholder="deviceIp" name="deviceIp">
-                    <label for="deviceIp">IP du device</label>
                 </div>
 
                 <div>
                     <h3 class="h5 mt-3 fw-normal">Type(s) de device :</h3>
                     <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" role="switch" id="isFolderDevice" name="isFolderDevice">
+                        <input class="form-check-input" type="checkbox" role="switch" id="isFolderDevice"
+                               name="isFolderDevice">
                         <label class="form-check-label" for="isFolderDevice">Dossier partagé</label>
                     </div>
 
                     <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" role="switch" id="isAudioDevice" name="isAudioDevice">
+                        <input class="form-check-input" type="checkbox" role="switch" id="isAudioDevice"
+                               name="isAudioDevice">
                         <label class="form-check-label" for="isAudioDevice">Streaming audio</label>
                     </div>
 
                     <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" role="switch" id="isVideoDevice" name="isVideoDevice">
+                        <input class="form-check-input" type="checkbox" role="switch" id="isVideoDevice"
+                               name="isVideoDevice">
                         <label class="form-check-label" for="isVideoDevice">Streaming vidéo</label>
                     </div>
+                </div>
+
+                <div class="form-floating my-2">
+                    <textarea class="form-control" placeholder="Cle publique" id="pubkey" name="pubkey"
+                              style="height: 100px" required></textarea>
+                    <label for="pubkey">Cle publique</label>
                 </div>
 
                 <button class="w-100 btn btn-lg btn-primary my-3" type="submit">Ajouter le device</button>

@@ -89,6 +89,16 @@ class Requester:
         except:
             return []
 
+    def user_info(self, id_user: int) -> tuple:
+        try:
+            sql = """SELECT * FROM device.users WHERE id_user=%s"""
+            self.cursor.execute(sql, (id_user,))
+            ret = self.cursor.fetchone()
+            return ret
+        except Exception as e:
+            print(e)
+            return ()
+
     ## ================================
     ##      DEVICE
     ## ================================
@@ -137,6 +147,11 @@ class Requester:
             return self.cursor.fetchall()
         except:
             return []
+
+    # Recupere un device (ou non) en fct de lid user et id device (pour la suppression de device dans le profile)
+    def get_user_device(self, user_id: int, device_id: int):
+        # TODO
+        pass
 
     ## ================================
     ##      HISTORY
