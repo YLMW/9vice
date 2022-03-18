@@ -23,11 +23,13 @@ load_dotenv(os.getcwd() + "/9vice-FlaskServer/routes/.env")
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'GET':
-        session = request.cookies.get('user_session')
-        if session:
-            return redirect(url_for('main.index'))
         if request.args.get('success'):
             return render_template('login.html', success=escape(request.args.get('success')))
+        session = request.cookies.get('user_session')
+        if session:
+            loggedUserinfo = get_info(session)
+            if is_logged(loggedUserinfo):
+                return redirect(url_for('main.index'))
         else:
             return render_template('login.html')
     else:
