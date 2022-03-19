@@ -25,22 +25,45 @@
                         <th scope="col">ID</th>
                         <th scope="col">Nom d'utilisateur</th>
                         <th scope="col">Addresse email</th>
+                        <th scope="col">Derniere connexion</th>
+                        <th scope="col">Status</th>
                         <th scope="col">Action</th>
                     </tr>
                     </thead>
                     <tbody>
                     {% for user in userList %}
                         <tr>
-                            <td>{{ user[0] }}</td>
-                            <td>{{ user[1] }}</td>
-                            <td>{{ user[2] }}</td>
-                            <td>
-                                <form action="{{ url_for('main.adminPanel') }}" method="POST">
-                                    <div class="btn-group">
-                                        <button type="submit" name="delUserByID" class="btn btn-sm btn-danger" value="{{ user[0] }}">Supprimer</button>
-                                    </div>
-                                </form>
-                            </td>
+                            <td>{{ user["id"] }}</td>
+                            <td>{{ user["username"] }}</td>
+                            <td>{{ user["mail"] }}</td>
+                            <td>{{ user["lastCon"] }}</td>
+                            {% if  user["isAdmin"] %}
+                            {% else %}
+                                {% if user["isBlocked"] %}
+                                    <td>
+                                        <form action="{{ url_for('main.adminPanel') }}" method="POST">
+                                            <div class="btn-group">
+                                                <button type="submit" name="unlockUserByID" class="btn btn-sm btn-success" value="{{ user["id"] }}">Debloquer</button>
+                                            </div>
+                                        </form>
+                                    </td>
+                                {% else %}
+                                    <td>
+                                        <form action="{{ url_for('main.adminPanel') }}" method="POST">
+                                            <div class="btn-group">
+                                                <button type="submit" name="lockUserByID" class="btn btn-sm btn-warning" value="{{ user["id"] }}"> Bloquer </button>
+                                            </div>
+                                        </form>
+                                    </td>
+                                {%  endif %}
+                                    <td>
+                                        <form action="{{ url_for('main.adminPanel') }}" method="POST">
+                                            <div class="btn-group">
+                                                <button type="submit" name="delUserByID" class="btn btn-sm btn-danger" value="{{ user["id"] }}">Supprimer</button>
+                                            </div>
+                                        </form>
+                                    </td>
+                            {%  endif %}
                         </tr>
                     {% endfor %}
                     </tbody>

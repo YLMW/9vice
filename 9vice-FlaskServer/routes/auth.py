@@ -3,9 +3,9 @@
 import re
 import string
 
-from ..requester.request import Requester
-from ..crypto.crypto import AESCipher
-from ..user.user import get_info, is_logged
+from requester.request import Requester
+from crypto.crypto import AESCipher
+from user.user import get_info, is_logged, is_locked
 from flask import Blueprint, render_template, request, make_response, redirect, url_for
 from markupsafe import escape
 import hashlib
@@ -16,8 +16,11 @@ import os
 auth = Blueprint('auth', __name__)
 dbReq = Requester()
 aesCipher = AESCipher()
-load_dotenv(os.getcwd() + "/9vice-FlaskServer/routes/.env")
-
+# Récupération du SALT
+env_path = os.getcwd() + "/routes/.env"
+print(env_path)
+load_dotenv(dotenv_path=env_path)
+SALT = os.getenv("SALT")
 
 # Definition des routes
 @auth.route('/login', methods=['GET', 'POST'])
@@ -28,7 +31,8 @@ def login():
         session = request.cookies.get('user_session')
         if session:
             loggedUserinfo = get_info(session)
-            if is_logged(loggedUserinfo):
+            if is_logged(loggedUserinfo) and not is_locked(loggedUserinfo):
+                dbReq.update_con(loggedUserinfo['id'])
                 return redirect(url_for('main.index'))
         else:
             return render_template('login.html')
@@ -41,21 +45,23 @@ def login():
 
         loginType = 'mail' if loginUsernameMail.__contains__('@') else 'username'
 
-        env_path = os.getcwd() + "/9vice-FlaskServer/routes/.env"
-        load_dotenv(dotenv_path=env_path)
-        SALT = os.getenv("SALT")
+
 
         password = escape(request.form.get('password'))
         hash = hashlib.sha256(SALT.encode() + password.encode()).hexdigest()
 
-        userInfos = dbReq.login_user(loginUsernameMail, loginType, hash)
+        userInfos = dbReq.login_user(loginUsernameMail.lower(), loginType, hash)
 
         if userInfos:
             # Login valid
-            resp = make_response(redirect(url_for('main.index')))
-            resp.set_cookie('user_session', aesCipher.encrypt(str(userInfos[0])),
+            if bool(userInfos[5]): # Utilisateur bloqué
+                return render_template('login.html', erreur="Votre compte est bloque")
+            else:
+                dbReq.update_con(loggedUserinfo['id'])
+                resp = make_response(redirect(url_for('main.index')))
+                resp.set_cookie('user_session', aesCipher.encrypt(str(userInfos[0])),
                             max_age=18000)  # expire au bout de 5 heures
-            return resp
+                return resp
         else:
             # Login invalid
             return render_template('login.html', erreur='Identifiant / mot de passe incorrect')
@@ -71,11 +77,10 @@ def register():
 
     else:
         try:
-            email = escape(request.form.get('email'))
-            username = escape(request.form.get('username'))
+            email = escape(request.form.get('email')).lower()
+            username = escape(request.form.get('username')).lower()
             password = escape(request.form.get('password'))
             passwordConfirm = escape(request.form.get('passwordConfirm'))
-            SALT = os.getenv("SALT")
             hashed = hashlib.sha256(SALT.encode() + password.encode()).hexdigest()
 
             if not isValidMail(email):
@@ -96,7 +101,7 @@ def register():
                 return render_template('register.html', erreur='Informations incorrectes')
         except Exception as e:
             print(e)
-            return render_template('register.html', erreur="Methode d'acces incorrect")
+            return render_template('register.html', erreur="Un compte existe deja pour ces informations.")
 
 
 @auth.route('/logout')

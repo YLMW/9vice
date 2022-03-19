@@ -3,8 +3,8 @@
 from flask import Flask, render_template
 
 # Import des blueprints de routage
-from .routes.main import main
-from .routes.auth import auth
+from routes.main import main
+from routes.auth import auth
 
 
 # Creation de l'appli

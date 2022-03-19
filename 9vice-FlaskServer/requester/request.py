@@ -1,12 +1,13 @@
 import psycopg2
 from dotenv import load_dotenv
 import os
+from datetime import datetime
 
 
 class Requester:
 
     def __init__(self):
-        env_path = os.getcwd() + "/9vice-FlaskServer/requester/.env"
+        env_path = os.getcwd() + "/requester/.env"
         load_dotenv(dotenv_path=env_path)
         USERNAME = os.getenv("DB_USERNAME")
         PASSWORD = os.getenv("DB_PASSWORD")
@@ -34,8 +35,11 @@ class Requester:
 
     # Ferme la connexion avec la base de données
     def db_close(self):
-        self.cursor.close()
-        self.connection.close()
+        try:
+            self.cursor.close()
+            self.connection.close()
+        except Exception as e:
+            print("[CRITICAL] db_close : " + str(e))
 
     ## =================================
     ##      USER
@@ -50,6 +54,7 @@ class Requester:
             self.connection.commit()
             return True
         except:
+            print("[CRITICAL] insert_user : " + str(e))
             self.connection.commit()
             return False
 
@@ -61,7 +66,8 @@ class Requester:
             self.cursor.execute(sql, (id_user,))
             self.connection.commit()
             return True
-        except:
+        except Exception as e:
+            print("[CRITICAL] del_user : " + str(e))
             self.connection.commit()
             return False
 
@@ -70,14 +76,23 @@ class Requester:
     def login_user(self, login: str, type: str, hash: str) -> tuple:
         try:
             sql_name = """SELECT * FROM device.users WHERE username= %s AND password=%s"""
-            sql_mail = """SELECT * FROM device.users WHERE mail= %s AND password=%s"""
-            if (type == "mail"):
-                self.cursor.execute(sql_mail, (login, hash))
-            elif (type == "username"):
-                self.cursor.execute(sql_name, (login, hash))
 
-            return self.cursor.fetchone()
-        except:
+            sql_mail = """SELECT * FROM device.users WHERE mail= %s AND password=%s"""
+
+            if type == "mail":
+                self.cursor.execute(sql_mail, (login, hash))
+                ret = self.cursor.fetchone()
+                return ret
+            elif type == "username":
+                self.cursor.execute(sql_name, (login, hash))
+                ret = self.cursor.fetchone()
+                return ret
+            else:
+                return ()
+
+        except Exception as e:
+            print("[CRITICAL] login_user : " + str(e))
+            self.connection.commit()
             return ()
 
     # Récupére la list des utilisateurs dans la base de données 
@@ -86,7 +101,8 @@ class Requester:
             sql = """SELECT * FROM device.users"""
             self.cursor.execute(sql)
             return self.cursor.fetchall()
-        except:
+        except Exception as e:
+            print("[CRITICAL] list_users : " + str(e))
             return []
 
     def user_info(self, id_user: int) -> tuple:
@@ -96,9 +112,39 @@ class Requester:
             ret = self.cursor.fetchone()
             return ret
         except Exception as e:
-            print(e)
+            print("[CRITICAL] user_info : " + str(e))
             return ()
 
+    def lock_user(self, id_user: int) -> bool:
+        try:
+            sql = """UPDATE device.users SET isBlocked=true WHERE id_user=%s AND isAdmin=false"""
+            self.cursor.execute(sql, (id_user,))
+            self.connection.commit()
+            return True
+        except Exception as e:
+            print("[CRITICAL] lock_user : "+str(e))
+            return False
+
+    def unlock_user(self, id_user:int) -> bool:
+        try:
+            sql = """UPDATE device.users SET isBlocked=false WHERE id_user=%s AND isAdmin=false"""
+            self.cursor.execute(sql, (id_user,))
+            self.connection.commit()
+            return True
+        except Exception as e:
+            print("[CRITICAL] unlock_user : "+str(e))
+            return False
+
+    def update_con(self, user_id: int)-> bool:
+        try:
+            sql = """UPDATE device.users SET lastCon=now() WHERE id_user=%s"""
+            self.cursor.execute(sql, (user_id,))
+            self.connection.commit()
+            return True
+        except Exception as e:
+            print("[CRITICAL | "+datetime.now()+" ] update_con : " + str(e))
+            self.connection.commit()
+            return False
     ## ================================
     ##      DEVICE
     ## ================================
@@ -110,21 +156,22 @@ class Requester:
             self.cursor.execute(sql, (id,))
             self.connection.commit()
             return True
-        except:
+        except Exception as e:
+            print("[CRITICAL] del_device : " + str(e))
             self.connection.commit()
             return False
 
     # Insert un nouveau device dans la base de données
     def insert_device(self, user_id: int, name: str, isCamera: bool, isMicro: bool, isFolder: bool,
                       pb_key: str) -> bool:
-
         try:
             sql = """INSERT INTO device.devices (name, id_user, camera, micro, folder, public_key) 
                     VALUES (%s, %s, %s, %s, %s, %s)"""
             self.cursor.execute(sql, (name, user_id, str(isCamera), str(isMicro), str(isFolder), pb_key))
             self.connection.commit()
             return True
-        except:
+        except Exception as e:
+            print("[CRITICAL] insert_device : " + str(e))
             self.connection.commit()
             return False
 
@@ -134,7 +181,8 @@ class Requester:
             sql = """SELECT COUNT(id_device) FROM device.devices WHERE id_user = %s """
             self.cursor.execute(sql, (id,))
             return self.cursor.fetchone()[0]
-        except:
+        except Exception as e:
+            print("[CRITICAL] count_devices : " + str(e))
             return 0
 
     # Récupére la liste des devices associés à un utilisateur donnée
@@ -145,7 +193,8 @@ class Requester:
                      WHERE devices.id_user = %s"""
             self.cursor.execute(sql, (id_user,))
             return self.cursor.fetchall()
-        except:
+        except Exception as e:
+            print("[CRITICAL] list_devices : " + str(e))
             return []
 
     # Recupere un device (ou non) en fct de lid user et id device (pour la suppression de device dans le profile)
@@ -159,19 +208,20 @@ class Requester:
             else:
                 return False
         except Exception as e:
-            print("[CRITICAL] " + str(e))
+            print("[CRITICAL] is_user_device : " + str(e))
             return False
     ## ================================
     ##      HISTORY
     ## ================================
 
-    # Récupére l'historique pour un utilisateur donnée
+    # Récupére l'historique pour un utilisateur donné
     def get_historique(self, id: int) -> list:
         try:
             sql = """SELECT * FROM device.history WHERE id_user = %s"""
             self.cursor.execute(sql, (id,))
             return self.cursor.fetchall()
-        except:
+        except Exception as e:
+            print("[CRITICAL] get_historique : " + str(e))
             return []
 
     # Récupére la dernière connexion d'un device donné d'un utilisateur

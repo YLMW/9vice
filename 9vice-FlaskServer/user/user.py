@@ -1,20 +1,37 @@
-from ..requester import request
-from ..crypto import crypto
-
+from requester.request import Requester
+from crypto import crypto
+from datetime import datetime
 
 def beutify_info(user_info: tuple) -> dict:
+    lastcon = "Jamais"
+
+    if user_info[6]:
+        lastcon = str(datetime.now() - user_info[6]).split('.')[0]#.replace(':', 'h ', 1).replace(':', 'm ', 1) + 's'
+        hour= lastcon.split(":")[0]
+        min=lastcon.split(":")[1]
+        sec=lastcon.split(":")[2]
+
+        activite = "En Ligne" if (int(hour) ==0 and int(min)<5) else hour + "h " + min + "m " + sec + "s"
+
     info = {
         "id": user_info[0],
-        "username": user_info[1],
+        "username": str(user_info[1]).capitalize(),
         "mail": user_info[2],
-        "isAdmin": bool(user_info[4])
+        "isAdmin": bool(user_info[4]),
+        "isBlocked": bool(user_info[5]),
+        "lastCon": activite
     }
     return info
 
+def beutify_list(user_list: list) -> list:
+    liste = []
+    for user in user_list:
+        liste.append(beutify_info(user))
+    return sorted(liste, key=lambda x:x["id"])
 
 def get_info(cookie: str) -> dict:
     try:
-        req = request.Requester()
+        req = Requester()
         aes = crypto.AESCipher()
         user_id = aes.decrypt(cookie)
         user_info = req.user_info(int(user_id))
@@ -24,5 +41,9 @@ def get_info(cookie: str) -> dict:
         return {}
 
 
-def is_logged(dict) -> bool:
-    return dict != {}
+def is_logged(dicti: dict) -> bool:
+    return dicti != {}
+
+
+def is_locked(dicti: dict) -> bool:
+    return dicti["isBlocked"]
