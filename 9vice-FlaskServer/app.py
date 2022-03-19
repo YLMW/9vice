@@ -27,12 +27,67 @@ app.register_blueprint(auth)
 def not_found(error):
     return render_template('pageNotFound.html'), 404
 
+# Client/Device link setup
+clientDevice = {} # Correspondence ClientSID et DeviceSID
+DeviceID = {}     # Correspondence DeviceSID et ID, on devrait pas utiliser un dictionnaire
+
+# Pour récupérer une clé depuis une valeur en O(n)
+def get_key(val):
+    for key, value in clientDevice.items():
+         if val == value:
+             return key
+
+# SocketIO Events
+
+@socketio.on('Connect Client')
+def handle_my_custom_namespace_event(json):
+    print('New client detected, sid: ' + request.sid)
+
+@socketio.on('Connect Device')
+def handle_my_custom_namespace_event(ID):
+    print('New device detected, sid: ' + request.sid + ', id: ' + ID)
+    DeviceID[ID] = request.sid
+    emit('Device advertised', ID, broadcast=True)
+
+@socketio.on('Link Device')
+def link_device_client(ID):
+    print('Linking client and device, C_sid: ' + request.sid + ', D_sid: ' + DeviceID[ID])
+    clientDevice[request.sid] = DeviceID[ID]
+    key = get_key(DeviceID[ID])
+
+    emit('Linked', clientDevice[request.sid], room=key)
+    print('Client Knows - ' + DeviceID[ID])
+
+    emit('Linked', key, room=DeviceID[ID])
+    print('Device Knows - ' + key)
+
+    DeviceID.pop(ID)  # Pour ne pas réattribuer la même websocket de Device à un autre client on la retire de la liste
+
+@socketio.on('to Device')
+def to_device(data):
+    target = clientDevice[request.sid]
+    print('Sending: "' + data + '" to device')
+    emit('from Client', data, room=target)
+
+@socketio.on('to Client')
+def to_client(data):
+    target = get_key(request.sid)
+    print('Sending: "' + data + '" to client')
+    emit('from Device', data, room=target)
+
+# Temporary events to test and debug
+@socketio.on('request device list')
+def handle_my_custom_namespace_event(json):
+    print('Devices requested')
+    emit('Device Listing', DeviceID)
+
 @socketio.on('my event')
 def handle_my_custom_namespace_event(json):
     print('received json: ' + str(json))
     print('Request.sid: ' + request.sid)
     emit('my answer', request.sid)
     emit('my device', 'Hello sid:' + request.sid, broadcast=True)
+
 
 # Main
 if __name__ == '__main__':
