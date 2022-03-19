@@ -32,10 +32,11 @@ clientDevice = {} # Correspondence ClientSID et DeviceSID
 DeviceID = {}     # Correspondence DeviceSID et ID, on devrait pas utiliser un dictionnaire
 
 # Pour récupérer une clé depuis une valeur en O(n)
-def get_key(val):
-    for key, value in clientDevice.items():
+def get_key(val, dict):
+    for key, value in dict.items():
          if val == value:
              return key
+
 
 # SocketIO Events
 
@@ -46,22 +47,22 @@ def handle_my_custom_namespace_event(json):
 @socketio.on('Connect Device')
 def handle_my_custom_namespace_event(ID):
     print('New device detected, sid: ' + request.sid + ', id: ' + ID)
-    DeviceID[ID] = request.sid
+    DeviceID[request.sid] = ID
     emit('Device advertised', ID, broadcast=True)
 
 @socketio.on('Link Device')
 def link_device_client(ID):
-    print('Linking client and device, C_sid: ' + request.sid + ', D_sid: ' + DeviceID[ID])
-    clientDevice[request.sid] = DeviceID[ID]
-    key = get_key(DeviceID[ID])
+    device_sid = get_key(ID, DeviceID)
+    print('Linking client and device, C_sid: ' + request.sid + ', D_sid: ' + device_sid)
+    clientDevice[request.sid] = device_sid
 
-    emit('Linked', clientDevice[request.sid], room=key)
-    print('Client Knows - ' + DeviceID[ID])
+    emit('Linked', clientDevice[request.sid], room=request.sid)
+    print('Client Knows - ' + device_sid)
 
-    emit('Linked', key, room=DeviceID[ID])
-    print('Device Knows - ' + key)
+    emit('Linked', request.sid, room=device_sid)
+    print('Device Knows - ' + request.sid)
 
-    DeviceID.pop(ID)  # Pour ne pas réattribuer la même websocket de Device à un autre client on la retire de la liste
+    DeviceID.pop(device_sid)  # Pour ne pas réattribuer la même websocket de Device à un autre client on la retire de la liste
 
 @socketio.on('to Device')
 def to_device(data):
@@ -71,11 +72,13 @@ def to_device(data):
 
 @socketio.on('to Client')
 def to_client(data):
-    target = get_key(request.sid)
+    target = get_key(request.sid, clientDevice)
     print('Sending: "' + data + '" to client')
     emit('from Device', data, room=target)
 
-# Temporary events to test and debug
+######################################
+# Temporary events to test and debug #
+######################################
 @socketio.on('request device list')
 def handle_my_custom_namespace_event(json):
     print('Devices requested')
