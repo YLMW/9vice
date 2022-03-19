@@ -27,7 +27,6 @@ def index():
     sessionCookie = request.cookies.get('user_session')
     if sessionCookie:
         loggedUserinfo = get_info(sessionCookie)
-        print(loggedUserinfo)
         if is_logged(loggedUserinfo):
             return render_template('index.html', readmeContent=md_template, userLogged=loggedUserinfo)
     return render_template('index.html', readmeContent=md_template)
