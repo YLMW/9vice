@@ -32,6 +32,7 @@ def handle_my_custom_namespace_event(json):
     print('received json: ' + str(json))
     print('Request.sid: ' + request.sid)
     emit('my answer', request.sid)
+    emit('my device', 'Hello sid:' + request.sid, broadcast=True)
 
 # Main
 if __name__ == '__main__':
