@@ -12,7 +12,13 @@
                 <script type="text/javascript" charset="utf-8">
                     var socket = io();
                     socket.on('connect', function() {
-                        socket.emit('my event', {data: 'I\'m connected!'});
+                        for (let i = 0; i < 3; i++) {
+                            socket.emit('my event', {data: 'I\'m connected!'});
+                        }
+                    });
+
+                    socket.on('my answer', function(msg) {
+                       console.log('msg received: ' + msg);
                     });
                 </script>
             <div>
