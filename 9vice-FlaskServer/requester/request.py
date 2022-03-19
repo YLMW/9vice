@@ -149,10 +149,18 @@ class Requester:
             return []
 
     # Recupere un device (ou non) en fct de lid user et id device (pour la suppression de device dans le profile)
-    def get_user_device(self, user_id: int, device_id: int):
-        # TODO
-        pass
-
+    def is_user_device(self, user_id: int, device_id: int) -> bool:
+        try:
+            sql = """SELECT * FROM device.devices WHERE id_device=%s AND id_user=%s"""
+            self.cursor.execute(sql, (device_id, user_id))
+            ret = self.cursor.fetchone()
+            if ret:
+                return True
+            else:
+                return False
+        except Exception as e:
+            print("[CRITICAL] " + str(e))
+            return False
     ## ================================
     ##      HISTORY
     ## ================================

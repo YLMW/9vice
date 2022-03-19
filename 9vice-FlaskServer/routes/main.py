@@ -1,6 +1,6 @@
 # Routes principales
 # Import des libs python
-from flask import Blueprint, render_template, request, redirect, url_for
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from markupsafe import escape
 from ..requester.request import Requester
 from ..user.user import get_info, is_logged
@@ -44,22 +44,27 @@ def profile():
                                        userDevices=dbReq.list_devices(loggedUserinfo.get('id')))
         return redirect(url_for('auth.login'))
     else:
-        # TODO ameliorer genre verif device appartient a user co
         sessionCookie = request.cookies.get('user_session')
         if sessionCookie:
             loggedUserinfo = get_info(sessionCookie)
             if is_logged(loggedUserinfo):
-                idToDel = request.form['delDeviceByID']
-                if dbReq.del_device(int(idToDel)):
-                    return render_template('profile.html', userLogged=loggedUserinfo,
-                                           deviceCount=dbReq.count_devices(loggedUserinfo.get('id')),
-                                           userDevices=dbReq.list_devices(loggedUserinfo.get('id')),
-                                           success="Device supprime")
+                idToDel = int(request.form['delDeviceByID'])
+                if dbReq.is_user_device(loggedUserinfo["id"], idToDel):
+                    if dbReq.del_device(idToDel):
+                        return render_template('profile.html', userLogged=loggedUserinfo,
+                                               deviceCount=dbReq.count_devices(loggedUserinfo.get('id')),
+                                               userDevices=dbReq.list_devices(loggedUserinfo.get('id')),
+                                               success="Device supprime")
+                    else:
+                        return render_template('profile.html', userLogged=loggedUserinfo,
+                                               deviceCount=dbReq.count_devices(loggedUserinfo.get('id')),
+                                               userDevices=dbReq.list_devices(loggedUserinfo.get('id')),
+                                               erreur="Le device n'a pas pu etre supprime")
                 else:
                     return render_template('profile.html', userLogged=loggedUserinfo,
                                            deviceCount=dbReq.count_devices(loggedUserinfo.get('id')),
                                            userDevices=dbReq.list_devices(loggedUserinfo.get('id')),
-                                           erreur="Le device n'a pas pu etre supprime")
+                                           erreur="Le device ne semble pas vous appartenir")
         return redirect(url_for('auth.login'))
 
 
