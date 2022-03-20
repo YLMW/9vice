@@ -145,6 +145,23 @@ class Requester:
             print("[CRITICAL | "+datetime.now()+" ] update_con : " + str(e))
             self.connection.commit()
             return False
+
+    def update_passwd(self, user_id: int, hash: str, new_passwd: str) -> bool:
+        try:
+            sql= """UPDATE device.users SET password=%s WHERE id_user=%s AND password=%s RETURNING id_user"""
+            self.cursor.execute(sql, (new_passwd, user_id, hash))
+            ret = self.cursor.fetchall()
+            self.connection.commit()
+            if ret:
+                return True
+            else:
+                return False
+        except Exception as e:
+            print("[CRITICAL] update_passwd : " + str(e))
+            self.connection.commit()
+            return False
+
+
     ## ================================
     ##      DEVICE
     ## ================================
@@ -210,6 +227,37 @@ class Requester:
         except Exception as e:
             print("[CRITICAL] is_user_device : " + str(e))
             return False
+
+    def is_active(self, user_id: int, device_id: int) -> bool:
+        try:
+            sql = """SELECT active FROM device.devices WHERE id_user=%s AND id_device=%s"""
+            self.cursor.execute(sql, (user_id, device_id))
+            ret = self.cursor.fetchone()[0]
+            return bool(ret)
+        except Exception as e:
+            print("[CRITICAL] is_active : " + str(e))
+            return False
+
+    def set_active(self, user_id: int, device_id: int) -> bool:
+        try:
+            sql = """UPDATE device.devices SET active=true WHERE id_user=%s AND id_device=%s"""
+            self.cursor.execute(sql, (user_id, device_id))
+            self.connection.commit()
+            return True
+        except Exception as e:
+            print("[CRITICAL] is_active : " + str(e))
+            return False
+
+    def set_inactive(self, user_id: int, device_id: int) -> bool:
+        try:
+            sql = """UPDATE device.devices SET active=false WHERE id_user=%s AND id_device=%s"""
+            self.cursor.execute(sql, (user_id, device_id))
+            self.connection.commit()
+            return True
+        except Exception as e:
+            print("[CRITICAL] is_active : " + str(e))
+            return False
+
     ## ================================
     ##      HISTORY
     ## ================================
