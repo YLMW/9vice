@@ -57,7 +57,7 @@ def login():
             if bool(userInfos[5]): # Utilisateur bloqué
                 return render_template('login.html', erreur="Votre compte est bloque")
             else:
-                dbReq.update_con(loggedUserinfo['id'])
+                dbReq.update_con(userInfos[0])
                 resp = make_response(redirect(url_for('main.index')))
                 resp.set_cookie('user_session', aesCipher.encrypt(str(userInfos[0])),
                             max_age=18000)  # expire au bout de 5 heures
