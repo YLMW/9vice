@@ -207,7 +207,7 @@ class Requester:
         try:
             sql = """SELECT devices.id_device, devices.name, devices.camera, devices.micro, devices.folder, devices.public_key
                      FROM device.devices
-                     WHERE devices.id_user = %s"""
+                     WHERE devices.id_user = %s ORDER BY id_device ASC"""
             self.cursor.execute(sql, (id_user,))
             return self.cursor.fetchall()
         except Exception as e:
