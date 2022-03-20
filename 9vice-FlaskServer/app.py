@@ -69,6 +69,7 @@ def to_device(data):
     target = clientDevice[request.sid]
     print('Sending: "' + data + '" to device')
     emit('from Client', data, room=target)
+    emit('stream Webcam', room=target) # Just to get things started
 
 @socketio.on('to Client')
 def to_client(data):
