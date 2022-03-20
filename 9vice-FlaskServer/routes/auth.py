@@ -17,8 +17,7 @@ auth = Blueprint('auth', __name__)
 dbReq = Requester()
 aesCipher = AESCipher()
 # Récupération du SALT
-env_path = os.getcwd() + "/routes/.env"
-print(env_path)
+env_path = os.getcwd() + "/.env"
 load_dotenv(dotenv_path=env_path)
 SALT = os.getenv("SALT")
 
@@ -31,11 +30,14 @@ def login():
         session = request.cookies.get('user_session')
         if session:
             loggedUserinfo = get_info(session)
-            if is_logged(loggedUserinfo) and not is_locked(loggedUserinfo):
-                dbReq.update_con(loggedUserinfo['id'])
-                return redirect(url_for('main.index'))
-        else:
-            return render_template('login.html')
+            if is_logged(loggedUserinfo):
+                if not is_locked(loggedUserinfo):
+                    dbReq.update_con(loggedUserinfo['id'])
+                else:
+                    resp = make_response(render_template('login.html', erreur="Votre compte est bloque. Veuillez vous rapprocher d'un administrateur."))
+                    resp.delete_cookie('user_session')
+                    return resp
+        return render_template('login.html')
     else:
 
         loginUsernameMail = escape(request.form.get('login'))
@@ -109,6 +111,44 @@ def logout():
     resp = make_response(redirect(url_for('main.index')))
     resp.delete_cookie('user_session')
     return resp
+
+
+@auth.route('/changePass', methods=['GET', 'POST'])
+def changePass():
+    if request.method == 'GET':
+        session = request.cookies.get('user_session')
+        if session:
+            loggedUserinfo = get_info(session)
+            if is_logged(loggedUserinfo) and not is_locked(loggedUserinfo):
+                return render_template('changePassword.html', userLogged=loggedUserinfo)
+        return redirect(url_for('auth.login'))
+
+    else:
+        try:
+            session = request.cookies.get('user_session')
+            if session:
+                loggedUserinfo = get_info(session)
+                if is_logged(loggedUserinfo) and not is_locked(loggedUserinfo):
+                    currentPassword = escape(request.form.get('currentPassword'))
+                    password = escape(request.form.get('newPassword'))
+                    passwordConfirm = escape(request.form.get('newPasswordConfirm'))
+                    currentHash = hashlib.sha256(SALT.encode() + currentPassword.encode()).hexdigest()
+                    hashed = hashlib.sha256(SALT.encode() + password.encode()).hexdigest()
+
+                    if not isStrongPassword(password):
+                        return render_template('changePassword.html', erreur="Votre mot de passe doit faire, au moins 8 characteres, et contenir majuscule, minuscule et chiffre")
+
+                    if not isSamePassword(password, passwordConfirm):
+                        return render_template('changePassword.html', erreur='Les mots de passe ne correspondent pas')
+
+                    if dbReq.update_passwd(loggedUserinfo['id'], currentHash, hashed):
+                        return redirect(url_for('main.profile')+"?success=ok")
+                    else:
+                        return render_template('changePassword.html', erreur="Le mot de passe n'a pas pu etre change")
+            return redirect(url_for('auth.login'))
+        except Exception as e:
+            print(e)
+            return render_template('register.html', erreur="Un compte existe deja pour ces informations.")
 
 
 # Verification funcs

@@ -7,7 +7,7 @@ from datetime import datetime
 class Requester:
 
     def __init__(self):
-        env_path = os.getcwd() + "/requester/.env"
+        env_path = os.getcwd() + "/.env"
         load_dotenv(dotenv_path=env_path)
         USERNAME = os.getenv("DB_USERNAME")
         PASSWORD = os.getenv("DB_PASSWORD")
@@ -62,7 +62,7 @@ class Requester:
     # RAJOUTER UN RETOUR 
     def del_user(self, id_user: int) -> bool:
         try:
-            sql = "DELETE FROM device.users WHERE id_user=%s"
+            sql = "DELETE FROM device.users WHERE id_user=%s AND isAdmin=false"
             self.cursor.execute(sql, (id_user,))
             self.connection.commit()
             return True

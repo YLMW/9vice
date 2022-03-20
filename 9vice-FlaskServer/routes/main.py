@@ -18,7 +18,7 @@ dbReq = Requester()
 def index():
     formatter = HtmlFormatter(style="emacs", full=True, cssclass="codehilite")
     css_string = formatter.get_style_defs()
-    readmeFile = open(os.getcwd() + "/../README.md", 'r')
+    readmeFile = open(os.getcwd() + "/README.md", 'r')
     mdTemplateString = markdown.markdown(readmeFile.read(), extensions=['markdown.extensions.fenced_code',
                                                                         'markdown.extensions.codehilite'])
     md_css_string = "<style>" + css_string + "</style>"
@@ -131,7 +131,10 @@ def adminPanel():
             if is_logged(loggedUserinfo) and loggedUserinfo['isAdmin']:
                 dbReq.update_con(loggedUserinfo['id'])
                 users = beutify_list(dbReq.list_users())
-                return render_template('adminPanel.html', userList=users, userLogged=loggedUserinfo)
+                if request.args.get('success'):
+                    return render_template('adminPanel.html', userList=users, userLogged=loggedUserinfo, success="Mot de passe modifie avec succes")
+                else:
+                    return render_template('adminPanel.html', userList=users, userLogged=loggedUserinfo)
         return redirect(url_for('auth.login'))
     else:
         sessionCookie = request.cookies.get('user_session')

@@ -38,6 +38,8 @@
                             <td>{{ user["mail"] }}</td>
                             <td>{{ user["lastCon"] }}</td>
                             {% if  user["isAdmin"] %}
+                                <td></td>
+                                <td></td>
                             {% else %}
                                 {% if user["isBlocked"] %}
                                     <td>
