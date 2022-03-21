@@ -1,12 +1,12 @@
 # 9vice
 
-## Introduction
+## Introduction 📘
 
 Dans le cadre du développement d'une application sécurisée, nous avons implémenté un service permettant la gestion ainsi que la mise en relation, d'utilisateurs et leurs devices. Un device pouvant être représenté par un système de fichier, un flux vidéo et/ou un flux audio. L'aspect sécurité du service doit être explicité et à une place importante dans ce projet.
 
 
 
-## Installation
+## Installation 🛠️
 
 Pour pouvoir utiliser notre application il vous sera necessaire de réunir les technologies suivantes :
 
@@ -17,11 +17,11 @@ Pour pouvoir utiliser notre application il vous sera necessaire de réunir les t
 
 ---
 
-### Base de données
+### Base de données :floppy_disk:
 
 Afin d'assurer une persistence sur les données de l'API, il est nécessaire de mettre en place une base de données. Nous utiliserons une base de données PostgreSQL ainsi qu'une machine sous Debian 11.
 
-#### PostgreSQL
+#### PostgreSQL 
 
 Pour installer les composants nécessaire à sa mise en place :
 
@@ -96,7 +96,7 @@ psql> UPDATE device.users SET isAdmin=true WHERE username=UsernameToChange;
 **WARNING Veillez à remplacer les variables finissant par ToChange par les valeurs de l'utilisateur concerné.**
 
 ---
-### API - 9vice-FlaskServer
+### API - 9vice-FlaskServer :computer:
 
 #### Variables d'environnement
 
@@ -138,7 +138,7 @@ $> flask run
 
 ---
 
-### Serveur des devices - 9vice-device
+### Serveur des devices - 9vice-device :video_camera:
 
 À présent, l'API est fonctionnel et est accessible par les utilisateurs. Il faut désormais mettre en place le serveur responsable de la gestion des devices. Pour cela, nous utiliserons le code prévu à cet effet.
 
