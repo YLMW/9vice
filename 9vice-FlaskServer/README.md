@@ -1,4 +1,5 @@
-![logo 9vice](https://github.com/YLMW/9vice/blob/main/9vice-FlaskServer/static/logo.svg)
+<img src="https://github.com/YLMW/9vice/blob/main/9vice-FlaskServer/static/logo.svg" alt="logo 9vice" width="80"/>
+
 # 9vice
 
 ## Introduction 📘
