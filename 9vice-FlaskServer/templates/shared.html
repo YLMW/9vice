@@ -14,8 +14,15 @@
             </div>
             <button id="upload">Upload files</button>
             <div id="filelist"></div>
+                <div id="dirListing">
+                </div>
+                <div id="downloadListing">
+                </div>
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+                <script src="https://cdn.skypack.dev/mime"></script>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.0/FileSaver.min.js"></script>
                 <script type="text/javascript" charset="utf-8">
+
                     const chunk_size = 64 * 1024;
                     var files = [];
 
@@ -27,6 +34,7 @@
                         socket.emit('Connect Client', {data: 'Client Connected'});
                     });
 
+//Upload
 ///////////////////////////////////////////////////////////////////////////////////////////////
                     var dropzone = document.getElementById('dropzone');
                     dropzone.ondragover = function(e) {
@@ -109,10 +117,9 @@
                                         onReadSuccess.bind(this),
                                         onReadError.bind(this));
                                 }
-                            }); //.bind(files[0])
+                            });
 
                     socket.on('chunk-uploaded', function(offset, ack) {
-                        console.log('offset ' + offset + ' akc ' + ack)
                             if (!ack)
                                 onReadError(files[0].file, offset, 0, 'Transfer aborted by server')
                         end_offset = offset + chunk_size; //length;
@@ -128,6 +135,72 @@
                         }});
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
+// Shared
+///////////////////////////////////////////////////////////////////////////////////////////////
+                    var fileData = '';
+                    //var fileMimeType = 'text/plain';
+                    var fileMimeType = 'image/png';
+                    var downloadFilename = '';
+
+                    function updateListing(listing)
+                    {
+                        var dirListing = document.getElementById('dirListing');
+                        dirListing.innerHTML = '';
+
+                        for (let i= 0; i < listing.length; i++) {
+                            let li = document.createElement('button');
+                            li.textContent = listing[i];
+                            li.setAttribute("onclick",'downloadME("'+listing[i]+'");');
+                            dirListing.appendChild(li)
+                        }
+                    }
+
+                    function addToDownloadListing()
+                    {
+                        var downListing = document.getElementById('downloadListing');
+                        let a = document.createElement('a')
+                        a.textContent = 'Save "' + downloadFilename + '"';
+
+                        //console.log(  mime.getType("file.jpg"));
+                        //a.setAttribute("download",downloadFilename);
+                        //a.setAttribute("href",'data:'+fileMimeType+';base64,'+fileDatab64);
+                        //window.location.href = 'data:application/octet-stream;base64,'+fileDatab64;
+
+                        var blob = new Blob([fileData], { type: "text/plain;charset=utf-8" });
+                        //var blob = new Blob([fileData], { type: "image/png" });
+                        saveAs(blob, downloadFilename);
+                        //downListing.appendChild(a);
+
+                        fileData = '';
+                        fileMimeType = '';
+                        downloadFilename = '';
+
+                    }
+
+                    function downloadME(filename)
+                    {
+                        console.log('Downloading: ' + filename);
+                        downloadFilename = filename;
+                        socket.emit('ask Download', filename, 0);
+                    }
+
+                    socket.on('downloaded Data - to Client', function(offset, data, stop) {
+                        fileData += atob(data);
+                        console.log(fileData);
+                        if(stop == false){
+                            console.log("we going")
+                            socket.emit('ask Download', downloadFilename, offset + (64 * 1024));
+                        }
+                        else{
+                            addToDownloadListing();
+                        }
+                    });
+
+                    socket.on('give Listing - Client', function(listing) {
+                        console.log(listing);
+                        updateListing(listing);
+                    });
+
                     // Quand on demande à se connecter à un device précis, ID est l'ID du device dans la DB
                     // Pour l'instant on se connect directement au device quand il s'advertise. En production les devices ne s'advertiseront pas aux clients
                     socket.on('Device advertised', function(id) {
@@ -140,7 +213,8 @@
                         console.log('I am linked to: ' + device);
 
                         //Juste histoire de pouvoir tester la suite des events
-                        socket.emit('to Device', 'Hello, Shared Folder')
+                        socket.emit('to Device', 'Hello, Shared Folder');
+                        socket.emit('give Listing');
                     });
 
                     socket.on('from Device', function(data) {

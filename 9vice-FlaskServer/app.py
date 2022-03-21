@@ -79,9 +79,9 @@ def to_client(data):
     print('Sending: "' + data + '" to client')
     emit('from Device', data, room=target)
 
+
+# Upload
 ########################################################################################################################
-
-
 @socketio.on('allow-transfer-device')
 def allow_transfer(answer):
     target = get_key(request.sid, clientDevice)
@@ -107,7 +107,35 @@ def start_transfer(filename, size):
 def write_chunk(filename, offset, data):
     print('Writing data to ' + filename + ' offset: ' + str(offset))
     target = clientDevice[request.sid]
-    return emit('write-chunk-device', (filename, offset, data), room=target)
+    emit('write-chunk-device', (filename, offset, data), room=target)
+########################################################################################################################
+
+# Shared Folder
+########################################################################################################################
+
+
+@socketio.on('give Listing')
+def give_listing():
+    print('Giving listing')
+    target = clientDevice[request.sid]
+    emit('give Listing - Device', room=target)
+
+
+@socketio.on('returning Listing')
+def give_listing(listing):
+    target = get_key(request.sid, clientDevice)
+    emit('give Listing - Client', listing, room=target)
+
+@socketio.on('ask Download')
+def ask_download(filename, offset):
+    target = clientDevice[request.sid]
+    emit('download File', (filename, offset), room=target)
+
+@socketio.on('returning Downloading')
+def send_download(offset, data, stop):
+    target = get_key(request.sid, clientDevice)
+    print('Downing Client ' + str(offset))
+    emit('downloaded Data - to Client', (offset, data, stop), room=target)
 
 ########################################################################################################################
 

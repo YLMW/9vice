@@ -41,6 +41,7 @@ def send_data():
         else:
             break
 
+# Upload
 ########################################################################################################################
 @sio.on('start-transfer-device')
 def start_transfer(filename, size):
@@ -83,6 +84,41 @@ def write_chunk(filename, offset, data):
     sio.emit('chunk-uploaded-device', (offset, True))
     return True
 ########################################################################################################################
+
+# Shared Folder
+########################################################################################################################
+
+@sio.on('download File')
+def check_download(filename, offset):
+    print('downloading ' + filename)
+    root, ext = os.path.splitext(filename)
+    if not os.path.exists('./shared/' + filename):
+        print('file does not exist')
+        return False
+    if root.__contains__('.'):
+        print('Directory traversal ?')
+        return False
+
+    try:
+        with open('./shared/' + filename, 'r+b') as f:
+            f.seek(offset)
+            data = f.read(64 * 1024)
+            data = base64.b64encode(data).decode('utf-8')
+            if offset + (64 * 1024) >= os.path.getsize('./shared/' + filename):
+                stop = True
+            else:
+                stop = False
+    except IOError:
+        print('IO error')
+        return False
+    sio.emit('returning Downloading', (offset, data, stop))
+
+@sio.on('give Listing - Device')
+def give_listing():
+    print('asking for listing')
+    listing = os.listdir("./shared/")
+    print(listing)
+    sio.emit('returning Listing', listing)
 
 @sio.event
 def connect():
