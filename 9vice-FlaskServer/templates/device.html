@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% set devicesList_active = 'active' %}
+{% set title = 'Device' %}
+
+{% block content %}
+
+    <div class="album bg-light rounded">
+        <div class="container py-2">
+            <h1 class="h1 mb-3 fw-normal text-center">Device : {{ device['name'] }}</h1>
+
+            <img id="video"></img>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
+                    integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
+                    crossorigin="anonymous">
+            </script>
+            <script type="text/javascript" charset="utf-8">
+                var socket = io();
+                var device = '';
+
+                socket.on('connect', function () {
+                    console.log('Connected to Server');
+                    socket.emit('Connect Client', {data: 'Client Connected'});
+                });
+
+                // Quand on demande à se connecter à un device précis, ID est l'ID du device dans la DB
+                // Pour l'instant on se connect directement au device quand il s'advertise. En production les devices ne s'advertiseront pas aux clients
+                socket.on('Device advertised', function (id) {
+                    console.log('New device detected: ' + id);
+                    socket.emit('Link Device', id);
+                });
+
+                socket.on('Linked', function (deviceSID) {
+                    device = deviceSID;
+                    console.log('I am linked to: ' + device);
+
+                    //Juste histoire de pouvoir tester la suite des events
+                    socket.emit('to Device', 'Hello my dear Device')
+                });
+
+                socket.on('from Device', function (data) {
+                    console.log('I received: ' + data);
+                    const image_element = document.getElementById('video');
+                    image_element.src = "data:image/jpeg;base64," + data;
+                });
+
+                ///////////////////////////////////
+                //       Temporary events        //
+                ///////////////////////////////////
+                socket.on('my answer', function (msg) {
+                    console.log('msg received: ' + msg);
+                });
+
+                socket.on('new device available', function (id, sid) {
+                    console.log('New device: ' + id + ' sid: ' + sid);
+                    socket.emit('request device list', 'please');
+                });
+
+                socket.on('Device Listing', function (dict) {
+                    for (var k in dict) {
+                        console.log('key: ' + k + ' / value: ' + dict[k]);
+                    }
+
+                });
+
+            </script>
+        </div>
+    </div>
+
+{% endblock %}

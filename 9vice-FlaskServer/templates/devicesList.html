@@ -1,97 +1,75 @@
 {% extends "base.html" %}
 
-{% set devicesList_active = 'active'%}
-{% set title = 'Liste devices'%}
+{% set devicesList_active = 'active' %}
+{% set title = 'Liste devices' %}
 
 {% block content %}
 
     <div class="album bg-light rounded">
         <div class="container py-2">
-            <h1 class="h3 mb-3 fw-normal text-center">Liste des devices</h1>
+            <h1 class="h1 mb-3 fw-normal text-center">Liste des devices</h1>
             <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+                {% if success %}
+                    <div class="alert alert-success" role="alert">
+                        {{ success }}
+                    </div>
+                {% endif %}
 
                 {# Boucle for format card AVEC image #}
-                {% for i in range(12) %}
+                {% for userDevice in userDevices %}
                     <div class="col">
                         <div class="card shadow-sm">
-                            <svg class="bd-placeholder-img card-img-top" width="100%" height="225" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placeholder: Thumbnail" preserveAspectRatio="xMidYMid slice" focusable="false"><title>Placeholder</title><rect width="100%" height="100%" fill="#55595c"></rect></svg>
+                            <svg class="bd-placeholder-img card-img-top" width="100%" height="225"
+                                 xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placeholder: Thumbnail"
+                                 preserveAspectRatio="xMidYMid slice" focusable="false"><title>Placeholder</title>
+                                <rect width="100%" height="100%" fill="#55595c"></rect>
+                            </svg>
 
                             <div class="card-body">
-                                <h5 class="card-title">Titre: {{ device.title | safe | default('defaut', True) }} {{ i }}</h5>
-                                <h6 class="card-subtitle mb-2 text-muted">Sous-titre: {{ device.subtitle | safe | default('defaut', True) }}</h6>
-                                <p class="card-text">Content : {{ device.content | safe | default('defaut', True) }}</p>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div class="btn-group">
-                                        {% for j in range(5) %}
-                                            <button type="button" class="btn btn-sm btn-outline-primary" disabled>Btn {{ j }}</button>
-                                        {% endfor %}
+                                <h5 class="card-title">
+                                    Nom device : {{ userDevice["name"] }}</h5>
+                            <hr>
+                                <h6 class="card-subtitle mb-2 text-muted">
+                                    Dossier : {% if  userDevice["folder"] %} <span style="color:blue"> oui </span>{% else %} non {% endif %}
+                                </h6>
+                                <h6 class="card-subtitle mb-2 text-muted">
+                                    Audio : {% if  userDevice["micro"] %} <span style="color:blue"> oui </span> {% else %} non {% endif %}
+                                </h6>
+                                <h6 class="card-subtitle mb-2 text-muted">
+                                    Video : {% if  userDevice["camera"] %} <span style="color:blue"> oui </span> {% else %} non {% endif %}
+                                </h6>
+                                <div class="d-flex justify-content-between">
+                                    <div class="d-flex flex-row py-2 pr-2 flex-grow-1 gap-2">
+                                        <form class="" action="{{ url_for('main.device') }}" method="post">
+                                            <div class="btn-group">
+                                                <button type="submit" style="width: 81.97px" class="btn btn-sm btn-outline-success btn-block"
+                                                        name="device" value="{{ userDevice["id_device"] }}"
+                                                {% if userDevice["active"]%}{% else %}disabled{% endif %}>
+                                                    Acces
+                                                </button>
+                                            </div>
+                                        </form>
+
+                                        <form action="{{ url_for('main.history') }}" method="post">
+                                            <div class="btn-group">
+                                                <button type="submit" class="btn btn-sm btn-outline-primary btn-block" name="search"
+                                                        value="{{ userDevice["name"] }}">Historique
+                                                </button>
+                                            </div>
+                                        </form>
                                     </div>
-                                    <small class="text-muted">[Status : {{ device.status | safe | default('defaut', True) }}]</small>
+                                    <div class="p-2  align-self-end">
+                                        <small class="text-muted">[ Status :
+                                            {% if userDevice["active"] %}
+                                                <span style="color:green"> En Ligne </span>
+                                            {% else %}
+                                                <span style="color:red"> Hors ligne </span>
+                                            {% endif %}]
+                                        </small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 {% endfor %}
-
-                {# Boucle for format card SANS image #}
-                {% for i in range(12) %}
-                    <div class="col">
-                        <div class="card shadow-sm">
-                            <div class="card-body">
-                                <h5 class="card-title">Titre: {{ device.title | safe | default('defaut', True) }} {{ i }}</h5>
-                                <h6 class="card-subtitle mb-2 text-muted">Sous-titre: {{ device.subtitle | safe | default('defaut', True) }}</h6>
-                                <p class="card-text">Content : {{ device.content | safe | default('defaut', True) }}</p>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div class="btn-group">
-                                        {% for j in range(5) %}
-                                            <button type="button" class="btn btn-sm btn-outline-primary" disabled>Btn {{ j }}</button>
-                                        {% endfor %}
-                                    </div>
-                                    <small class="text-muted">[Status : {{ device.status | safe | default('defaut', True) }}]</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
-
-
-
-            </div>
-            {# Boucle for format tableau #}
-            <table class="table my-3 table-bordered">
-                <thead>
-                <tr>
-                    <th scope="col">Titre</th>
-                    <th scope="col">Sous-titre</th>
-                    <th scope="col">Content</th>
-                    <th scope="col">Btn</th>
-                    <th scope="col">Status</th>
-                </tr>
-                </thead>
-                <tbody>
-                {% for i in range(11) %}
-
-                    <tr>
-                        <td>{{ device.title | safe | default('defaut', True) }} {{ i }}</td>
-                        <td>{{ device.subtitle | safe | default('defaut', True) }}</td>
-                        <td>{{ device.content | safe | default('defaut', True) }}</td>
-                        <td style="width: 260px">
-                            <div class="btn-group">
-                                {% for j in range(5) %}
-                                    <button type="button" class="btn btn-sm btn-outline-primary" disabled>Btn {{ j }}</button>
-                                {% endfor %}
-                            </div>
-                        </td>
-                        <td style="width: 150px">
-                            <small class="text-muted">{{ device.status | safe | default('[defaut]', True) }}</small>
-                        </td>
-                    </tr>
-
-                {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-
 {% endblock %}

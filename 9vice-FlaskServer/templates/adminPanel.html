@@ -7,31 +7,66 @@
 
     <div class="album bg-light rounded">
         <div class="container py-2">
-            <h1 class="h3 mb-3 fw-normal text-center">Panel administrateur</h1>
+            <h1 class="h1 mb-3 fw-normal text-center">Panel administrateur</h1>
             <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+                {% if erreur %}
+                    <div class="alert alert-danger" role="alert">
+                        {{ erreur }}
+                    </div>
+                {% endif %}
+                {% if success %}
+                    <div class="alert alert-success" role="alert">
+                        {{ success }}
+                    </div>
+                {% endif %}
                 <table class="table my-3 table-bordered">
                     <thead>
                     <tr>
+                        <th scope="col">ID</th>
                         <th scope="col">Nom d'utilisateur</th>
                         <th scope="col">Addresse email</th>
-                        <th scope="col">Nombre de device</th>
+                        <th scope="col">Derniere connexion</th>
+                        <th scope="col">Status</th>
                         <th scope="col">Action</th>
                     </tr>
                     </thead>
                     <tbody>
-                    {% for i in range(11) %}
-
+                    {% for user in userList %}
                         <tr>
-                            <td>User {{ i }}</td>
-                            <td>Mail {{ i }}</td>
-                            <td>{{ i }}</td>
-                            <td>
-                                <div class="btn-group">
-                                    <button type="button" class="btn btn-sm btn-danger">Supprimer</button>
-                                </div>
-                            </td>
+                            <td>{{ user["id"] }}</td>
+                            <td>{{ user["username"] }}</td>
+                            <td>{{ user["mail"] }}</td>
+                            <td>{{ user["lastCon"] }}</td>
+                            {% if  user["isAdmin"] %}
+                                <td></td>
+                                <td></td>
+                            {% else %}
+                                {% if user["isBlocked"] %}
+                                    <td>
+                                        <form action="{{ url_for('main.adminPanel') }}" method="POST">
+                                            <div class="btn-group">
+                                                <button type="submit" name="unlockUserByID" class="btn btn-sm btn-success" style="width: 82px" value="{{ user["id"] }}">Debloquer</button>
+                                            </div>
+                                        </form>
+                                    </td>
+                                {% else %}
+                                    <td>
+                                        <form action="{{ url_for('main.adminPanel') }}" method="POST">
+                                            <div class="btn-group">
+                                                <button type="submit" name="lockUserByID" class="btn btn-sm btn-warning" style="width: 82px" value="{{ user["id"] }}"> Bloquer </button>
+                                            </div>
+                                        </form>
+                                    </td>
+                                {%  endif %}
+                                    <td>
+                                        <form action="{{ url_for('main.adminPanel') }}" method="POST">
+                                            <div class="btn-group">
+                                                <button type="submit" name="delUserByID" class="btn btn-sm btn-danger" value="{{ user["id"] }}">Supprimer</button>
+                                            </div>
+                                        </form>
+                                    </td>
+                            {%  endif %}
                         </tr>
-
                     {% endfor %}
                     </tbody>
                 </table>
