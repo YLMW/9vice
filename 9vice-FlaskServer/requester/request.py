@@ -59,7 +59,7 @@ class Requester:
             return False
 
     # Supprime un utilisateur dans la base de données
-    # RAJOUTER UN RETOUR 
+    # RAJOUTER UN RETOUR
     def del_user(self, id_user: int) -> bool:
         try:
             sql = "DELETE FROM device.users WHERE id_user=%s AND isAdmin=false"
@@ -95,7 +95,7 @@ class Requester:
             self.connection.commit()
             return ()
 
-    # Récupére la list des utilisateurs dans la base de données 
+    # Récupére la list des utilisateurs dans la base de données
     def list_users(self) -> list:
         try:
             sql = """SELECT * FROM device.users"""
@@ -122,33 +122,33 @@ class Requester:
             self.connection.commit()
             return True
         except Exception as e:
-            print("[CRITICAL] lock_user : "+str(e))
+            print("[CRITICAL] lock_user : " + str(e))
             return False
 
-    def unlock_user(self, id_user:int) -> bool:
+    def unlock_user(self, id_user: int) -> bool:
         try:
             sql = """UPDATE device.users SET isBlocked=false WHERE id_user=%s AND isAdmin=false"""
             self.cursor.execute(sql, (id_user,))
             self.connection.commit()
             return True
         except Exception as e:
-            print("[CRITICAL] unlock_user : "+str(e))
+            print("[CRITICAL] unlock_user : " + str(e))
             return False
 
-    def update_con(self, user_id: int)-> bool:
+    def update_con(self, user_id: int) -> bool:
         try:
             sql = """UPDATE device.users SET lastCon=now() WHERE id_user=%s"""
             self.cursor.execute(sql, (user_id,))
             self.connection.commit()
             return True
         except Exception as e:
-            print("[CRITICAL | "+datetime.now()+" ] update_con : " + str(e))
+            print("[CRITICAL | " + str(datetime.now()) + " ] update_con : " + str(e))
             self.connection.commit()
             return False
 
     def update_passwd(self, user_id: int, hash: str, new_passwd: str) -> bool:
         try:
-            sql= """UPDATE device.users SET password=%s WHERE id_user=%s AND password=%s RETURNING id_user"""
+            sql = """UPDATE device.users SET password=%s WHERE id_user=%s AND password=%s RETURNING id_user"""
             self.cursor.execute(sql, (new_passwd, user_id, hash))
             ret = self.cursor.fetchall()
             self.connection.commit()
@@ -160,7 +160,6 @@ class Requester:
             print("[CRITICAL] update_passwd : " + str(e))
             self.connection.commit()
             return False
-
 
     ## ================================
     ##      DEVICE
@@ -205,7 +204,7 @@ class Requester:
     # Récupére la liste des devices associés à un utilisateur donnée
     def list_devices(self, id_user: int) -> list:
         try:
-            sql = """SELECT devices.id_device, devices.name, devices.camera, devices.micro, devices.folder, devices.public_key
+            sql = """SELECT devices.id_device, devices.id_user, devices.name, devices.camera, devices.micro, devices.folder, devices.active
                      FROM device.devices
                      WHERE devices.id_user = %s ORDER BY id_device ASC"""
             self.cursor.execute(sql, (id_user,))
@@ -213,6 +212,18 @@ class Requester:
         except Exception as e:
             print("[CRITICAL] list_devices : " + str(e))
             return []
+
+    # Récupére le device associe au couple d'id device / user
+    def get_device(self, id_user: int, id_device: int) -> tuple:
+        try:
+            sql = """SELECT devices.id_device, devices.id_user, devices.name, devices.camera, devices.micro, devices.folder, devices.active
+                         FROM device.devices
+                         WHERE devices.id_user = %s AND devices.id_device = %s"""
+            self.cursor.execute(sql, (id_user, id_device,))
+            return self.cursor.fetchone()
+        except Exception as e:
+            print("[CRITICAL] get_device : " + str(e))
+            return ()
 
     # Recupere un device (ou non) en fct de lid user et id device (pour la suppression de device dans le profile)
     def is_user_device(self, user_id: int, device_id: int) -> bool:
@@ -262,16 +273,53 @@ class Requester:
     ##      HISTORY
     ## ================================
 
-    # Récupére l'historique pour un utilisateur donné
-    def get_historique(self, id: int) -> list:
+    def get_historique_like(self, id_user: int, like: str) -> list:
         try:
-            sql = """SELECT * FROM device.history WHERE id_user = %s"""
-            self.cursor.execute(sql, (id,))
+            sql = """SELECT devices.name, history.id_user, history.id_device, history.latest FROM device.history, device.devices WHERE history.id_user=%s AND devices.id_device=history.id_device AND devices.name ILIKE %s"""
+            self.cursor.execute(sql, (id_user, '%' + like + '%',))
+            return self.cursor.fetchall()
+        except Exception as e:
+            print("[CRITICAL] get_historique_like : " + str(e))
+            return []
+
+    def new_historique(self, id_user: int, id_device: int) -> bool:
+        try:
+            sql = """INSERT INTO device.history (id_user, id_device, latest) VALUES (%s, %s, now())"""
+            self.cursor.execute(sql, (id_user, id_device,))
+            self.connection.commit()
+            return True
+        except Exception as e:
+            print("[CRITICAL] new_historique : " + str(e))
+            self.connection.commit()
+            return False
+
+    # Récupére l'historique pour un utilisateur donné
+    def get_user_history(self, id_user: int) -> list:
+        try:
+            sql = """SELECT devices.name, history.id_device, history.id_user, history.latest FROM device.history, device.devices WHERE history.id_user = %s AND history.id_device=devices.id_device ORDER BY history.latest DESC"""
+            self.cursor.execute(sql, (id_user,))
             return self.cursor.fetchall()
         except Exception as e:
             print("[CRITICAL] get_historique : " + str(e))
             return []
 
+    def get_device_history(self, id_user: int, id_device: int) -> list:
+        try:
+            sql = """SELECT * FROM device.history WHERE id_user=%s AND id_device=%s ORDER BY id ASC"""
+            self.cursor.execute(sql, (id_user, id_device))
+            ret = self.cursor.fetchall()
+            return ret
+        except Exception as e:
+            print("[CRITICAL] get_device_history : " + str(e))
+            return []
+
     # Récupére la dernière connexion d'un device donné d'un utilisateur
-    def get_latest_con(self, login: str, name: str):
-        pass
+    def get_latest_con(self, id_user: int, id_device: int):
+        try:
+            sql = """SELECT latest FROM device.history WHERE id_user=%s AND id_device=%s ORDER BY latest DESC LIMIT 1"""
+            self.cursor.execute(sql, (id_user, id_device,))
+            ret = self.cursor.fetchone()
+            return ret
+        except Exception as e:
+            print("[CRITICAL] get_latest_con : " + str(e))
+            return None

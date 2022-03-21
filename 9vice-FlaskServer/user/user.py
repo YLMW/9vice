@@ -2,7 +2,7 @@ from requester.request import Requester
 from crypto import crypto
 from datetime import datetime
 
-def beutify_info(user_info: tuple) -> dict:
+def beautify_info(user_info: tuple) -> dict:
     lastcon = "Jamais"
 
     if user_info[6]:
@@ -23,10 +23,10 @@ def beutify_info(user_info: tuple) -> dict:
     }
     return info
 
-def beutify_list(user_list: list) -> list:
+def beautify_list(user_list: list) -> list:
     liste = []
     for user in user_list:
-        liste.append(beutify_info(user))
+        liste.append(beautify_info(user))
     return sorted(liste, key=lambda x:x["id"])
 
 def get_info(cookie: str) -> dict:
@@ -35,7 +35,7 @@ def get_info(cookie: str) -> dict:
         aes = crypto.AESCipher()
         user_id = aes.decrypt(cookie)
         user_info = req.user_info(int(user_id))
-        return beutify_info(user_info)
+        return beautify_info(user_info)
     except Exception as e:
         print("[CRITICAL] " + str(e))
         return {}

@@ -45,7 +45,7 @@
                                     <td>
                                         <form action="{{ url_for('main.adminPanel') }}" method="POST">
                                             <div class="btn-group">
-                                                <button type="submit" name="unlockUserByID" class="btn btn-sm btn-success" value="{{ user["id"] }}">Debloquer</button>
+                                                <button type="submit" name="unlockUserByID" class="btn btn-sm btn-success" style="width: 82px" value="{{ user["id"] }}">Debloquer</button>
                                             </div>
                                         </form>
                                     </td>
@@ -53,7 +53,7 @@
                                     <td>
                                         <form action="{{ url_for('main.adminPanel') }}" method="POST">
                                             <div class="btn-group">
-                                                <button type="submit" name="lockUserByID" class="btn btn-sm btn-warning" value="{{ user["id"] }}"> Bloquer </button>
+                                                <button type="submit" name="lockUserByID" class="btn btn-sm btn-warning" style="width: 82px" value="{{ user["id"] }}"> Bloquer </button>
                                             </div>
                                         </form>
                                     </td>

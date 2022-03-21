@@ -54,12 +54,12 @@
                     {% for userDevice in userDevices %}
 
                         <tr>
-                            <td>{{ userDevice[1] }}</td>
+                            <td>{{ userDevice["name"] }}</td>
                             <td>
                                 <div class="input-group-text">
                                     <input class="form-check-input  mx-auto my-auto" type="checkbox" value=""
                                            aria-label=""
-                                            {% if  userDevice[4] %}
+                                            {% if  userDevice["folder"] %}
                                            checked
                                             {% endif %}
                                            disabled
@@ -70,7 +70,7 @@
                                 <div class="input-group-text">
                                     <input class="form-check-input mx-auto my-auto" type="checkbox" value=""
                                            aria-label=""
-                                            {% if  userDevice[3] %}
+                                            {% if  userDevice["micro"] %}
                                            checked
                                             {% endif %}
                                            disabled
@@ -81,19 +81,25 @@
                                 <div class="input-group-text">
                                     <input class="form-check-input  mx-auto my-auto" type="checkbox" value=""
                                            aria-label=""
-                                            {% if  userDevice[2] %}
+                                            {% if  userDevice["camera"] %}
                                            checked
                                             {% endif %}
                                            disabled
                                     >
                                 </div>
                             </td>
-                            <td>Pas le budget !</td>
+                            <td>
+                                {% if userDevice["active"] %}
+                                    <span style="color:green"> En Ligne </span>
+                                {% else %}
+                                    <span style="color:red"> Hors ligne </span>
+                                {% endif %}
+                            </td>
                             <td>
                                 <form action="{{ url_for('main.profile') }}" method="POST">
                                     <div class="btn-group">
                                         <button type="submit" name="delDeviceByID" class="btn btn-sm btn-danger"
-                                                value="{{ userDevice[0] }}">Supprimer
+                                                value="{{ userDevice["id"] }}">Supprimer
                                         </button>
                                     </div>
                                 </form>

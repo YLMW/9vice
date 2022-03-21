@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% set historique_active = 'active' %}
+{% set title = 'Historique' %}
+
+{% block content %}
+
+    <div class="album bg-light rounded">
+        <div class="container py-2">
+            <h1 class="h1 mb-3 fw-normal text-center">Historique des devices</h1>
+
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+                {% if erreur %}
+                    <div class="alert alert-danger" role="alert">
+                        {{ erreur }}
+                    </div>
+                {% endif %}
+                {% if success %}
+                    <div class="alert alert-success" role="alert">
+                        {{ success }}
+                    </div>
+                {% endif %}
+
+                <form action="{{ url_for('main.history') }}" method="POST">
+                    <div class="row">
+
+                        <div class="col form-floating my-2">
+                            <input type="text" class="form-control" id="search" placeholder="Recherche"
+                                   name="search"
+                                   required>
+                            <label for="search">Nom du device</label>
+                        </div>
+
+                        <div class="col">
+                            <button class="btn btn-lg btn-primary my-3" type="submit">Rechercher</button>
+                        </div>
+
+                    </div>
+                </form>
+
+                <table class="table my-3 table-bordered">
+                    <thead>
+                    <tr>
+                        <th scope="col">Nom du device</th>
+                        <th scope="col">Connexion le</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for hist in liste_historique %}
+                        <tr>
+                            <td>{{ hist["name"] }}</td>
+                            <td>{{ hist["timestamp"] }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+{% endblock %}
