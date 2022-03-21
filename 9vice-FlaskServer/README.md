@@ -93,7 +93,7 @@ psql> UPDATE device.users SET isAdmin=true WHERE id_user=IdToChange;
 psql> UPDATE device.users SET isAdmin=true WHERE username=UsernameToChange;
 ```
 
-**WARNING Veillez à remplacer les variables finissant par ToChange par les valeurs de l'utilisateur concerné.**
+**:warning: Veillez à remplacer les variables finissant par ToChange par les valeurs de l'utilisateur concerné.**
 
 ---
 ### API - 9vice-FlaskServer :computer:
@@ -144,7 +144,7 @@ $> flask run
 
 #### Variables d'environnement
 
-À l'image du serveur de l'API, certaines variables ne sont pas stockées en clair dans le code source. Il faut donc également spécifier un fichier nommé *.env* avec les variables suivantes :
+À l'image du serveur de l'API, certaines variables ne sont pas stockées en clair dans le code source. Il faut donc également spécifier un fichier nommé *.env*, dans le même dossier contenant le script de l'application, avec les variables suivantes :
 
 - ACCOUNT_ID=
 > L'utilisateur saisit l'id de son compte au sein de l'API
