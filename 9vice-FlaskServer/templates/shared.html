@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% set index_active = 'active'%}
+{% set title = 'Index'%}
+
+{% block content %}
+
+    <div class="album bg-light rounded">
+        <div class="container py-2">
+            <h1 class="h3 mb-3 fw-normal text-center">Sharing Time !</h1>
+            <div class="container">
+            <div id="dropzone">
+                Drop files here!
+            </div>
+            <button id="upload">Upload files</button>
+            <div id="filelist"></div>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+                <script type="text/javascript" charset="utf-8">
+                    const chunk_size = 64 * 1024;
+                    var files = [];
+
+                    var socket = io();
+                    var device = '';
+
+                    socket.on('connect', function() {
+                        console.log('Connected to Server');
+                        socket.emit('Connect Client', {data: 'Client Connected'});
+                    });
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+                    var dropzone = document.getElementById('dropzone');
+                    dropzone.ondragover = function(e) {
+                        e.preventDefault();
+                    }
+                    dropzone.ondrop = function(e) {
+                        e.preventDefault();
+                        if(e.dataTransfer.files.length > 1)
+                        {
+                            alert('Un seul fichier à la fois')
+                            return 1;
+                        }else{
+                            filediv = document.createElement('div');
+                            filename = document.createElement('div');
+                            filename.classList.add('filename');
+                            filename.innerHTML = e.dataTransfer.files[0].name;
+                            filediv.appendChild(filename);
+                            document.getElementById('filelist').appendChild(filediv);
+                            files.push({
+                                file: e.dataTransfer.files[0],
+                                done: false
+                            });
+                        }
+                    }
+
+                    // read a chunk from a file
+                    function readFileChunk(file, offset, length, success, error) {
+                        end_offset = offset + length;
+                        if (end_offset > file.size)
+                            end_offset = file.size;
+                        var r = new FileReader();
+                        r.onload = function(file, offset, length, e) {
+                            if (e.target.error != null)
+                                error(file, offset, length, e.target.error);
+                            else
+                                success(file, offset, length, e.target.result);
+                        }.bind(r, file, offset, length);
+                        r.readAsArrayBuffer(file.slice(offset, end_offset));
+                    }
+
+                    // read success callback
+                    function onReadSuccess(file, offset, length, data) {
+                        if (this.done)
+                            return;
+                        if (!socket.connected) {
+                            // the WebSocket connection was lost, wait until it comes back
+                            setTimeout(onReadSuccess.bind(this, file, offset, length, data), 5000);
+                            return;
+                        }
+                        socket.emit('write-chunk-client', this.server_filename, offset, data);
+                    }
+
+                    // read error callback
+                    function onReadError(file, offset, length, error) {
+                        console.log('Upload error for ' + file.name + ': ' + error);
+                        //files[0].done = true;
+                        files = [];
+                    }
+
+                    // upload button
+                    var upload = document.getElementById('upload');
+                    upload.onclick = function() {
+                        if (files.length == 0)
+                            alert('Drop some files above first!');
+                        else{
+                            socket.emit('start-transfer-client', files[0].file.name, files[0].file.size);
+                        }
+                    }
+
+                    socket.on('allow-transfer', function(filename) {
+                                if (!filename) {
+                                    // the server rejected the transfer
+                                    onReadError.call(this, files[0].file, 0, 0, 'Upload rejected by server')
+                                }
+                                else {
+                                    // the server allowed the transfer with the given filename
+                                    console.log(filename)
+                                    this.server_filename = filename;
+                                    readFileChunk(files[0].file, 0, chunk_size,
+                                        onReadSuccess.bind(this),
+                                        onReadError.bind(this));
+                                }
+                            }); //.bind(files[0])
+
+                    socket.on('chunk-uploaded', function(offset, ack) {
+                        console.log('offset ' + offset + ' akc ' + ack)
+                            if (!ack)
+                                onReadError(files[0].file, offset, 0, 'Transfer aborted by server')
+                        end_offset = offset + chunk_size; //length;
+                        console.log(this)
+                        if (end_offset < files[0].file.size)
+                            readFileChunk(files[0].file, end_offset, chunk_size,
+                                onReadSuccess.bind(this),
+                                onReadError.bind(this));
+                        else {
+                            console.log('Upload done for ' + files[0].file.name);
+                            //this.done = true;
+                            files = [];
+                        }});
+///////////////////////////////////////////////////////////////////////////////////////////////
+
+                    // Quand on demande à se connecter à un device précis, ID est l'ID du device dans la DB
+                    // Pour l'instant on se connect directement au device quand il s'advertise. En production les devices ne s'advertiseront pas aux clients
+                    socket.on('Device advertised', function(id) {
+                        console.log('New device detected: ' + id);
+                        socket.emit('Link Device', id);
+                    });
+
+                    socket.on('Linked', function(deviceSID) {
+                        device = deviceSID;
+                        console.log('I am linked to: ' + device);
+
+                        //Juste histoire de pouvoir tester la suite des events
+                        socket.emit('to Device', 'Hello, Shared Folder')
+                    });
+
+                    socket.on('from Device', function(data) {
+                        console.log('I received: ' + data);
+                    });
+
+                    ///////////////////////////////////
+                    //       Temporary events        //
+                    ///////////////////////////////////
+
+                    socket.on('new device available', function(id, sid) {
+                        console.log('New device: ' + id + ' sid: ' + sid);
+                        socket.emit('request device list', 'please');
+                    });
+                </script>
+            <div>
+                {{ readmeContent | safe }}
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

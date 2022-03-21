@@ -64,18 +64,52 @@ def link_device_client(ID):
 
     DeviceID.pop(device_sid)  # Pour ne pas réattribuer la même websocket de Device à un autre client on la retire de la liste
 
+
 @socketio.on('to Device')
 def to_device(data):
     target = clientDevice[request.sid]
     print('Sending: "' + data + '" to device')
     emit('from Client', data, room=target)
-    emit('stream Webcam', room=target) # Just to get things started
+    # emit('stream Webcam', room=target) # Just to get things started
+
 
 @socketio.on('to Client')
 def to_client(data):
     target = get_key(request.sid, clientDevice)
     print('Sending: "' + data + '" to client')
     emit('from Device', data, room=target)
+
+########################################################################################################################
+
+
+@socketio.on('allow-transfer-device')
+def allow_transfer(answer):
+    target = get_key(request.sid, clientDevice)
+    print('in callback ' + answer + ' target ' + target)
+    emit('allow-transfer', answer, room=target)\
+
+
+@socketio.on('chunk-uploaded-device')
+def allow_transfer(offset, ack):
+    target = get_key(request.sid, clientDevice)
+    print('in callback ' + str(offset) + ' ack: ' + str(ack))
+    emit('chunk-uploaded', (offset, ack), room=target)
+
+
+@socketio.on('start-transfer-client')
+def start_transfer(filename, size):
+    print('asking permission to write ' + filename + ' of size ' + str(size))
+    target = clientDevice[request.sid]
+    emit('start-transfer-device', (filename, size), room=target)
+
+
+@socketio.on('write-chunk-client')
+def write_chunk(filename, offset, data):
+    print('Writing data to ' + filename + ' offset: ' + str(offset))
+    target = clientDevice[request.sid]
+    return emit('write-chunk-device', (filename, offset, data), room=target)
+
+########################################################################################################################
 
 ######################################
 # Temporary events to test and debug #

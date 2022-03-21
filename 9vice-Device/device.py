@@ -1,9 +1,10 @@
 import socketio
 import cv2
 import json
+import os
 import base64
 from time import sleep
-cap=cv2.VideoCapture(0)
+cap=cv2.VideoCapture(0) # Le 1 c'est pour ma webcam
 
 # Probablement un truc qui finira dans un .env, moi j'y connais rien
 ID = '9'
@@ -39,6 +40,49 @@ def send_data():
             sleep(0)
         else:
             break
+
+########################################################################################################################
+@sio.on('start-transfer-device')
+def start_transfer(filename, size):
+    print("analyzing file")
+    """Process an upload request from the client."""
+    root, ext = os.path.splitext(filename)
+    if ext in ['.exe', '.bin', '.js', '.sh', '.py', '.php']:
+        sio.emit('allow-transfer-device')
+        return False  # reject the upload
+    if root.__contains__('.'):
+        print('Directory traversal ?')
+        sio.emit('allow-transfer-device')
+        return False
+
+    print("extensions allowed")
+
+    with open('./shared/' + root + '.json', 'wt') as f:
+        json.dump({'filename': filename, 'size': size}, f)
+        print("wt")
+    with open('./shared/' + root + ext, 'wb') as f:
+        print("wb")
+        pass
+    print("returning " + root + ext)
+    sio.emit('allow-transfer-device', root + ext)  # allow the upload
+
+
+@sio.on('write-chunk-device')
+def write_chunk(filename, offset, data):
+    """Write a chunk of data sent by the client."""
+    if not os.path.exists('./shared/' + filename):
+        sio.emit('chunk-uploaded-device', (offset, False))
+        return False
+    try:
+        with open('./shared/' + filename, 'r+b') as f:
+            f.seek(offset)
+            f.write(data)
+    except IOError:
+        sio.emit('chunk-uploaded-device', (offset, False))
+        return False
+    sio.emit('chunk-uploaded-device', (offset, True))
+    return True
+########################################################################################################################
 
 @sio.event
 def connect():

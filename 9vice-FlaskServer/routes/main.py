@@ -67,4 +67,7 @@ def adminPanel():
 @main.route('/websocket')
 def websock():
     return render_template('websocket.html')
+@main.route('/shared')
+def shared():
+    return render_template('shared.html')
 
