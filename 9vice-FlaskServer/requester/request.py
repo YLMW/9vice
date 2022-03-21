@@ -275,7 +275,7 @@ class Requester:
 
     def get_historique_like(self, id_user: int, like: str) -> list:
         try:
-            sql = """SELECT devices.name, history.id_user, history.id_device, history.latest FROM device.history, device.devices WHERE history.id_user=%s AND devices.id_device=history.id_device AND devices.name ILIKE %s"""
+            sql = """SELECT devices.name, history.id_user, history.id_device, history.latest FROM device.history, device.devices WHERE history.id_user=%s AND devices.id_device=history.id_device AND devices.name ILIKE %s AND latest IS NOT NULL"""
             self.cursor.execute(sql, (id_user, '%' + like + '%',))
             return self.cursor.fetchall()
         except Exception as e:
@@ -296,7 +296,7 @@ class Requester:
     # Récupére l'historique pour un utilisateur donné
     def get_user_history(self, id_user: int) -> list:
         try:
-            sql = """SELECT devices.name, history.id_device, history.id_user, history.latest FROM device.history, device.devices WHERE history.id_user = %s AND history.id_device=devices.id_device ORDER BY history.latest DESC"""
+            sql = """SELECT devices.name, history.id_device, history.id_user, history.latest FROM device.history, device.devices WHERE history.id_user = %s AND history.id_device=devices.id_device AND history.latest IS NOT NULL ORDER BY history.latest DESC"""
             self.cursor.execute(sql, (id_user,))
             return self.cursor.fetchall()
         except Exception as e:
@@ -305,7 +305,7 @@ class Requester:
 
     def get_device_history(self, id_user: int, id_device: int) -> list:
         try:
-            sql = """SELECT * FROM device.history WHERE id_user=%s AND id_device=%s ORDER BY id ASC"""
+            sql = """SELECT * FROM device.history WHERE id_user=%s AND id_device=%s AND latest IS NOT NULL ORDER BY id ASC"""
             self.cursor.execute(sql, (id_user, id_device))
             ret = self.cursor.fetchall()
             return ret
@@ -316,7 +316,7 @@ class Requester:
     # Récupére la dernière connexion d'un device donné d'un utilisateur
     def get_latest_con(self, id_user: int, id_device: int):
         try:
-            sql = """SELECT latest FROM device.history WHERE id_user=%s AND id_device=%s ORDER BY latest DESC LIMIT 1"""
+            sql = """SELECT latest FROM device.history WHERE id_user=%s AND id_device=%s AND latest IS NOT NULL ORDER BY latest DESC LIMIT 1"""
             self.cursor.execute(sql, (id_user, id_device,))
             ret = self.cursor.fetchone()
             return ret

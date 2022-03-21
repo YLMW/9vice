@@ -7,11 +7,25 @@ def beautify_info(user_info: tuple) -> dict:
 
     if user_info[6]:
         lastcon = str(datetime.now() - user_info[6]).split('.')[0]#.replace(':', 'h ', 1).replace(':', 'm ', 1) + 's'
-        hour= lastcon.split(":")[0]
-        min=lastcon.split(":")[1]
-        sec=lastcon.split(":")[2]
+        if 'day' not in str(lastcon):
+            hour= lastcon.split(":")[0]
+            min=lastcon.split(":")[1]
+            sec=lastcon.split(":")[2]
+            activite = "En Ligne" if (
+                        int(hour) == 0 and int(min) < 5) else hour + "h " + min + "m " + sec + "s"
+        else:
+            day = lastcon.split(' ')[0]
+            hour = lastcon.split(' ')[2].split(":")[0]
+            min = lastcon.split(' ')[2].split(":")[1]
+            sec = lastcon.split(' ')[2].split(":")[2]
+            if int(day) < 30:
+                activite = "En Ligne" if (
+                        int(hour) == 0 and int(min) < 5) else day + "j " + hour + "h " + min + "m " + sec + "s"
+            else:
+                activite = "+30 jours"
 
-        activite = "En Ligne" if (int(hour) ==0 and int(min)<5) else hour + "h " + min + "m " + sec + "s"
+
+
 
     info = {
         "id": user_info[0],

@@ -9,7 +9,7 @@ def beautify_history(history_info: tuple) -> dict:
         "name": str(history_info[0]).capitalize(),
         "timestamp": history_info[3].strftime("%d %B, %Y, %H:%M:%S")
     }
-    print(info)
+
     return info
 
 

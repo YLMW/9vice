@@ -30,17 +30,17 @@
                                     Nom device : {{ userDevice["name"] }}</h5>
                             <hr>
                                 <h6 class="card-subtitle mb-2 text-muted">
-                                    Dossier : {% if  userDevice["folder"] %} oui {% else %} non {% endif %}
+                                    Dossier : {% if  userDevice["folder"] %} <span style="color:blue"> oui </span>{% else %} non {% endif %}
                                 </h6>
                                 <h6 class="card-subtitle mb-2 text-muted">
-                                    Audio : {% if  userDevice["micro"] %} oui {% else %} non {% endif %}
+                                    Audio : {% if  userDevice["micro"] %} <span style="color:blue"> oui </span> {% else %} non {% endif %}
                                 </h6>
                                 <h6 class="card-subtitle mb-2 text-muted">
-                                    Video : {% if  userDevice["camera"] %} oui {% else %} non {% endif %}
+                                    Video : {% if  userDevice["camera"] %} <span style="color:blue"> oui </span> {% else %} non {% endif %}
                                 </h6>
                                 <div class="d-flex justify-content-between">
-                                    <div class="d-flex flex-row py-2 pr-2">
-                                        <form class="mx-2" action="{{ url_for('main.device') }}" method="post">
+                                    <div class="d-flex flex-row py-2 pr-2 flex-grow-1 gap-2">
+                                        <form class="" action="{{ url_for('main.device') }}" method="post">
                                             <div class="btn-group">
                                                 <button type="submit" style="width: 81.97px" class="btn btn-sm btn-outline-success btn-block"
                                                         name="device" value="{{ userDevice["id_device"] }}"
