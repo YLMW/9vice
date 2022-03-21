@@ -1,7 +1,9 @@
 # Main app
 # Import des libs python
+import hashlib
 import os
 
+from dotenv import load_dotenv
 from flask import Flask, render_template, request
 
 from flask_socketio import SocketIO
@@ -11,6 +13,7 @@ from flask_socketio import join_room, leave_room  # Les rooms
 # Import des blueprints de routage
 from routes.main import main
 from routes.auth import auth
+from user.device import get_device_id, get_device_hash, set_active, set_inactive
 
 # Creation de l'appli
 app = Flask(__name__, template_folder='templates/')
@@ -19,9 +22,13 @@ app = Flask(__name__, template_folder='templates/')
 app.register_blueprint(main)
 app.register_blueprint(auth)
 
+env_path = os.getcwd() + "/.env"
+load_dotenv(dotenv_path=env_path)
+SECRET = os.getenv("APP_SECRET_KEY")
+SALT = os.getenv("SALT")
 
 # Setup SocketIO
-app.config['SECRET_KEY'] = 'secret!'
+app.config['SECRET_KEY'] = SECRET
 socketio = SocketIO(app)
 
 
@@ -34,7 +41,7 @@ def not_found(error):
 # Client/Device link setup
 clientDevice = {}  # Correspondence ClientSID et DeviceSID
 DeviceID = {}  # Correspondence DeviceSID et ID, on devrait pas utiliser un dictionnaire
-
+CurrentDeviceList = {} # Tous les devices actuellement up SID : ID
 
 # Pour récupérer une clé depuis une valeur en O(n)
 def get_key(val, dict):
@@ -51,10 +58,30 @@ def handle_my_custom_namespace_event(json):
 
 
 @socketio.on('Connect Device')
-def handle_my_custom_namespace_event(ID):
-    print('New device detected, sid: ' + request.sid + ', id: ' + ID)
-    DeviceID[request.sid] = ID
-    emit('Device advertised', ID, broadcast=True)
+def handle_device_connection(data):
+    print('New device detected, sid: ' + request.sid)
+    id_user = data['id_user']
+    name = data['name']
+    mdp = data['mdp']
+    ID = get_device_id(id_user, name)
+    hashed = hashlib.sha256(SALT.encode() + mdp.encode()).hexdigest()
+    dbhash = get_device_hash(ID)
+    if hashed == dbhash:
+        if set_active(id_user, ID):
+            DeviceID[request.sid] = ID
+            CurrentDeviceList[request.sid] = ID
+            emit('Device advertised', ID, broadcast=True)
+            return
+    raise ConnectionRefusedError('unauthorized!')
+
+
+@socketio.on('disconnect')
+def test_disco():
+    print('request.sid ' + request.sid)
+    # Code de vérif que request.sid € CurrentDeviceList
+    id_to_inactive = CurrentDeviceList.get(request.sid)
+    set_inactive(id_to_inactive)
+    CurrentDeviceList.pop(request.sid)
 
 
 @socketio.on('Link Device')
@@ -108,4 +135,3 @@ def handle_my_custom_namespace_event(json):
 # Main
 if __name__ == '__main__':
     app.run()
-

@@ -1,7 +1,10 @@
 # Routes principales
 # Import des libs python
+import hashlib
+
 from flask import Blueprint, render_template, request, redirect, url_for
 from markupsafe import escape
+from dotenv import load_dotenv
 from requester.request import Requester
 from user.user import get_info, is_logged, is_locked, beautify_list
 from user.device import get_devices_info, is_active, beautify_device
@@ -14,6 +17,10 @@ import os
 main = Blueprint('main', __name__)
 dbReq = Requester()
 
+# Récupération du SALT
+env_path = os.getcwd() + "/.env"
+load_dotenv(dotenv_path=env_path)
+SALT = os.getenv("SALT")
 
 # Definition des routes
 @main.route('/')
@@ -111,7 +118,7 @@ def add():
             if is_logged(loggedUserinfo) and not is_locked(loggedUserinfo):
                 dbReq.update_con(loggedUserinfo['id'])
                 deviceName = escape(request.form.get('deviceName'))
-                devicePubKey = escape(request.form.get('pubkey'))
+                devicePubKey = hashlib.sha256(SALT.encode() + request.form.get('pubkey').encode()).hexdigest()
                 isFolderDevice = True if escape(request.form.get('isFolderDevice')) == "on" else False
                 isAudioDevice = True if escape(request.form.get('isAudioDevice')) == "on" else False
                 isVideoDevice = True if escape(request.form.get('isVideoDevice')) == "on" else False
@@ -125,7 +132,7 @@ def add():
                                            userLogged=loggedUserinfo)
 
                 if devicePubKey == "":
-                    return render_template('addDevice.html', erreur='Il faut renseigner une cle publique',
+                    return render_template('addDevice.html', erreur='Il faut renseigner un mot de passe de device',
                                            userLogged=loggedUserinfo)
 
                 if dbReq.insert_device(loggedUserinfo['id'], deviceName, isVideoDevice, isAudioDevice, isFolderDevice,

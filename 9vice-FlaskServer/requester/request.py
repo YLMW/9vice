@@ -259,15 +259,34 @@ class Requester:
             print("[CRITICAL] is_active : " + str(e))
             return False
 
-    def set_inactive(self, user_id: int, device_id: int) -> bool:
+    def set_inactive(self, device_id: int) -> bool:
         try:
-            sql = """UPDATE device.devices SET active=false WHERE id_user=%s AND id_device=%s"""
-            self.cursor.execute(sql, (user_id, device_id))
+            sql = """UPDATE device.devices SET active=false WHERE id_device=%s"""
+            self.cursor.execute(sql, (device_id, ))
             self.connection.commit()
             return True
         except Exception as e:
-            print("[CRITICAL] is_active : " + str(e))
+            print("[CRITICAL] is_inactive : " + str(e))
             return False
+
+    def get_id_device(self, user_id:int, device_name:str) -> int:
+        try:
+            sql = """SELECT id_device FROM device.devices WHERE id_user=%s AND name=%s"""
+            self.cursor.execute(sql, (user_id, device_name))
+            ret = self.cursor.fetchone()[0]
+            return int(ret)
+        except Exception as e:
+            print("[CRITICAL] get_id_device : " + str(e))
+            return -1
+
+    def get_hash_device(self, device_id: int) -> str:
+        try:
+            sql = """SELECT public_key FROM device.devices WHERE id_device=%s"""
+            self.cursor.execute(sql, (device_id, ))
+            return str(self.cursor.fetchone()[0])
+        except Exception as e:
+            print("[CRITICAL] get_hash_device : " + str(e))
+            return ''
 
     ## ================================
     ##      HISTORY

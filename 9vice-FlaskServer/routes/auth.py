@@ -49,7 +49,7 @@ def login():
 
 
 
-        password = escape(request.form.get('password'))
+        password = request.form.get('password')
         hash = hashlib.sha256(SALT.encode() + password.encode()).hexdigest()
 
         userInfos = dbReq.login_user(loginUsernameMail.lower(), loginType, hash)
