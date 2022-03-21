@@ -1,6 +1,5 @@
-<img src="https://github.com/YLMW/9vice/blob/main/9vice-FlaskServer/static/logo.svg" alt="logo 9vice" width="80"/>
 
-# 9vice
+# 9vice  <img src="https://github.com/YLMW/9vice/blob/main/9vice-FlaskServer/static/logo.svg" alt="logo 9vice" width="100"/>
 
 ## Introduction 📘
 
