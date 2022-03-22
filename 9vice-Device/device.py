@@ -4,7 +4,43 @@ import json
 import os
 import base64
 from time import sleep
+import time
 cap=cv2.VideoCapture(0) # Le 1 c'est pour ma webcam
+
+"""
+import hashlib
+from Crypto.Cipher import AES
+from Crypto import Random
+from dotenv import load_dotenv
+
+class AESCipher(object):
+
+    def __init__(self):
+        env_path = os.getcwd() + "/.env"
+        load_dotenv(dotenv_path=env_path)
+        SECRET = os.getenv("SECRET_KEY")
+        self.bs = AES.block_size
+        self.key = hashlib.sha256(SECRET.encode()).digest()
+
+    def encrypt(self, raw):
+        raw = self._pad(raw)
+        iv = Random.new().read(AES.block_size)
+        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+        return base64.b64encode(iv + cipher.encrypt(raw.encode()))
+
+    def decrypt(self, enc):
+        enc = base64.b64decode(enc)
+        iv = enc[:AES.block_size]
+        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+        return self._unpad(cipher.decrypt(enc[AES.block_size:])).decode('utf-8')
+
+    def _pad(self, s):
+        return s + (self.bs - len(s) % self.bs) * chr(self.bs - len(s) % self.bs)
+
+    @staticmethod
+    def _unpad(s):
+        return s[:-ord(s[len(s) - 1:])]
+"""
 
 # Probablement un truc qui finira dans un .env, moi j'y connais rien
 ID = '9'
@@ -41,84 +77,102 @@ def send_data():
         else:
             break
 
-# Upload
 ########################################################################################################################
-@sio.on('start-transfer-device')
-def start_transfer(filename, size):
+os.chdir('./shared/')
+rootdir = os.getcwd()
+@sio.on('start-transfer-device')#判断文件格式和文件名，如果包含可以信息则拒绝，返回False
+def start_transfer(uploadDir, filename, size):
     print("analyzing file")
     """Process an upload request from the client."""
-    root, ext = os.path.splitext(filename)
-    if ext in ['.exe', '.bin', '.js', '.sh', '.py', '.php']:
+    root, ext = os.path.splitext(filename)#pour savoir le type de fichier
+    if ext in ['.exe', '.bin', '.js', '.sh', '.py', '.php']:#ne permet pas des fichiers de codes 
         sio.emit('allow-transfer-device')
         return False  # reject the upload
-    if root.__contains__('.'):
+    if root.__contains__('..') or uploadDir.__contains__('..'):
         print('Directory traversal ?')
         sio.emit('allow-transfer-device')
         return False
 
     print("extensions allowed")
-
-    with open('./shared/' + root + '.json', 'wt') as f:
-        json.dump({'filename': filename, 'size': size}, f)
-        print("wt")
-    with open('./shared/' + root + ext, 'wb') as f:
+    print(rootdir + uploadDir + '/' + root + '.json')
+    with open(rootdir + uploadDir + '/' + root + ext, 'wb') as f:#暂时无用
         print("wb")
         pass
     print("returning " + root + ext)
-    sio.emit('allow-transfer-device', root + ext)  # allow the upload
+    sio.emit('allow-transfer-device', root + ext)  # 设备检查通过会给服务器返回 allow the upload，返回文件名到allow-transfer-device事件
 
 
-@sio.on('write-chunk-device')
-def write_chunk(filename, offset, data):
+@sio.on('write-chunk-device')#收到客户端传来的数据，写进device的指定文件夹中
+def write_chunk(uploadDir ,filename, offset, data):#写数据
     """Write a chunk of data sent by the client."""
-    if not os.path.exists('./shared/' + filename):
+    if not os.path.exists(rootdir + uploadDir  + '/' + filename):#如果该文件不存在则返回false
         sio.emit('chunk-uploaded-device', (offset, False))
         return False
     try:
-        with open('./shared/' + filename, 'r+b') as f:
+        with open(rootdir + uploadDir  + '/' + filename, 'r+b') as f:#否则打开文件从sffset开始写入data
             f.seek(offset)
             f.write(data)
     except IOError:
         sio.emit('chunk-uploaded-device', (offset, False))
         return False
-    sio.emit('chunk-uploaded-device', (offset, True))
+    sio.emit('chunk-uploaded-device', (offset, True))#写完后返回true和offset
     return True
-########################################################################################################################
 
-# Shared Folder
-########################################################################################################################
-
-@sio.on('download File')
-def check_download(filename, offset):
-    print('downloading ' + filename)
+##################################################################################
+@sio.on('show fichiers')
+def show_fichiers(dirCurrent, filename):
+    """  """
     root, ext = os.path.splitext(filename)
-    if not os.path.exists('./shared/' + filename):
-        print('file does not exist')
-        return False
-    if root.__contains__('.'):
+
+    if(filename == '' or filename == ".."):
+        # 名字为空，切换到根目录
+        os.chdir(rootdir)
+        dirCurrent=''
+    elif root.__contains__('.'):
         print('Directory traversal ?')
-        return False
+        os.chdir(rootdir)
+        dirCurrent = ''
+    else:
+        fullname = os.getcwd()+os.sep+filename #os.sep= '/' ou '\' ca depend le systeme, pour nous linux c'est '/'
+        #  fichier，download
+        if os.path.isfile(fullname):
+            # return redirect(url_for('show', fname=subdir))
+        #  dossier，cd
+            return
+        else:
+            os.chdir(fullname) #进入文件夹
+            dirCurrent += os.sep+filename #更改现在所处地址
 
-    try:
-        with open('./shared/' + filename, 'r+b') as f:
-            f.seek(offset)
-            data = f.read(64 * 1024)
-            data = base64.b64encode(data).decode('utf-8')
-            if offset + (64 * 1024) >= os.path.getsize('./shared/' + filename):
-                stop = True
-            else:
-                stop = False
-    except IOError:
-        print('IO error')
-        return False
-    sio.emit('returning Downloading', (offset, data, stop))
+    contents= []
+    for i in sorted(os.listdir(os.getcwd())):
+        fullPath = os.getcwd()+os.sep+i
+        if os.path.isdir(fullPath):
+           i = i+os.sep#si dossier+'/'
+        content = {}
+        content['fname'] = i
+        content['mtime'] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(os.stat(fullPath).st_mtime))
+        content['fsize'] = str(round(os.path.getsize(fullPath) / 1024)) + 'k'
+        contents.append(content)
 
-@sio.on('give Listing - Device')
-def give_listing():
-    print('asking for listing')
-    listing = os.listdir("./shared/")
-    print(listing)
-    sio.emit('returning Listing', listing)
+    sio.emit('send url root', (rootdir, dirCurrent, contents, os.sep) )
+
+@sio.on('read_file_asked')
+def read_file_asked(dirCurrent, filename):
+    fullPath = "." + dirCurrent + os.sep +filename
+    if os.path.exists(fullPath):
+        root, ext = os.path.splitext(filename)#pour savoir le type de fichier
+        if dirCurrent.__contains__('..') or root.__contains__('..'):
+            print('Directory traversal ?')
+            return False
+        if ext in ['.txt']:
+            f = open(fullPath, 'r')# r->text， rb->bite
+        else:
+            f = open(fullPath, 'rb')# r->text， rb->bite
+
+        ### à continuer mais je vais au dodo 
+
+
+########################################################################################################################
 
 @sio.event
 def connect():
@@ -143,4 +197,4 @@ def catch_all(event, data):
 # main
 sio.connect('http://localhost:5000')
 sio.sleep(1)
-sio.emit('Connect Device', ID)
+sio.emit('Connect Device', ID)  #设备只要一连上就会把自己的ID发送到服务器

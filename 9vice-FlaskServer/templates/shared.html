@@ -8,23 +8,50 @@
     <div class="album bg-light rounded">
         <div class="container py-2">
             <h1 class="h3 mb-3 fw-normal text-center">Sharing Time !</h1>
+            <h2 class="h3 mb-3 fw-normal text-center">Bonjour !</h2>
             <div class="container">
+
             <div id="dropzone">
                 Drop files here!
             </div>
+
             <button id="upload">Upload files</button>
             <div id="filelist"></div>
-                <div id="dirListing">
-                </div>
-                <div id="downloadListing">
-                </div>
+            <hr>
+            <h3>Documents</h3>
+            <h4 id="pathCurrent"></h4>
+            <hr>
+
+            <table id="tablef" width="999px"></table>
+
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
-                <script src="https://cdn.skypack.dev/mime"></script>
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.0/FileSaver.min.js"></script>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.js"></script>
+                
                 <script type="text/javascript" charset="utf-8">
 
+//Crypto Test
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+var key = CryptoJS.enc.Utf8.parse('ds8am3wys3pd75nf0ggtvajw2k3uny92');     // Use Utf8-Encoder.
+var iv  = CryptoJS.enc.Utf8.parse('jm8lgqa3j1d0ajus');                     // Use Utf8-Encoder
+
+var ciphertext = CryptoJS.enc.Base64.parse('dIwykUwOomuWcdw/QX/Aig==');    // Use Base64-Encoder.
+var encryptedCP = CryptoJS.lib.CipherParams.create({
+    ciphertext: ciphertext,
+    formatter: CryptoJS.format.OpenSSL                                     // Optional, but required for encryptedCP.toString()
+});
+var decryptedWA = CryptoJS.AES.decrypt(encryptedCP, key, { iv: iv});
+
+var encryptedBase64 = encryptedCP.toString();                              // Short for: encryptedCP.ciphertext.toString(CryptoJS.enc.Base64);
+var decryptedUtf8 = decryptedWA.toString(CryptoJS.enc.Utf8);               // Avoid the Base64 detour.
+                                                                           // Alternatively: CryptoJS.enc.Utf8.stringify(decryptedWA);
+console.log("Ciphertext (Base64)  : " + encryptedBase64)
+console.log("Decrypted data (Utf8): " + decryptedUtf8);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                     const chunk_size = 64 * 1024;
                     var files = [];
+                    uploadDir = '';
 
                     var socket = io();
                     var device = '';
@@ -34,39 +61,133 @@
                         socket.emit('Connect Client', {data: 'Client Connected'});
                     });
 
-//Upload
 ///////////////////////////////////////////////////////////////////////////////////////////////
-                    var dropzone = document.getElementById('dropzone');
-                    dropzone.ondragover = function(e) {
-                        e.preventDefault();
+                    let thead = document.createElement('thead');
+                    let tbody = document.createElement('tbody');
+                    // Creating and adding data to first row of the table
+                    let head = document.createElement('tr');
+                    let headName = document.createElement('th');
+                    headName.innerHTML = '<h5>Name</h5>';
+                    let headTime = document.createElement('th');
+                    headTime.innerHTML = "<h5>Last Modified Time</h5>";
+                    let headSize = document.createElement('th');
+                    headSize.innerHTML = "<h5>Size</h5>";
+                    let headDownload = document.createElement('th');
+                    headDownload.innerHTML = "<h5>Download</h5>";
+
+                    head.appendChild(headName);
+                    head.appendChild(headTime);
+                    head.appendChild(headSize);
+                    head.appendChild(headDownload);
+                    thead.appendChild(head);
+
+                    // Adding the entire table to the body tag
+                    var tableEle = document.getElementById('tablef');
+                    tableEle.appendChild(thead);
+                    tableEle.appendChild(tbody);  
+
+                    var dirCurrent = ''; //au debut on es dans root
+
+                    function hrefAction(filename){
+                        if(filename.substr(filename.length-1,1)=='/'){//it's a dossier
+                            console.log("我要进这个文件夹"+dirCurrent+filename);
+                            filename=filename.substr(0,filename.length-1)
+                            socket.emit('send urlCurrent', dirCurrent, filename );
+                        }
+                        else{
+                            if(filename == "D"){
+
+                            }else{
+                                socket.emit('read file', dirCurrent, filename );
+                            }
+                        }
+                            
+                        
                     }
-                    dropzone.ondrop = function(e) {
+
+                    socket.on('Shared Directory', function(rootUrl, dirCur, contents, ossep) {//ossep="/" pour linux et mac, "\" pour windows
+                        dirCurrent = dirCur;
+                        console.log('I received: ' + rootUrl +dirCurrent+ contents +ossep);
+                        var path=document.getElementById('pathCurrent').innerHTML = "Path: "+dirCurrent; 
+                        tbody.innerHTML='';
+                        if(dirCurrent != ''){
+                            let backRoot = document.createElement('tr');
+                            let pathRoot = document.createElement('td');
+                            let hrefRoot = document.createElement('a');
+                            hrefRoot.href="javascript:hrefAction(\"../\");";
+                            hrefRoot.innerHTML=".."+ossep;
+                            pathRoot.appendChild(hrefRoot);
+                            backRoot.appendChild(pathRoot);
+                            backRoot.appendChild(document.createElement('td'));
+                            backRoot.appendChild(document.createElement('td'));
+                            backRoot.appendChild(document.createElement('td'));
+                            tbody.appendChild(backRoot);
+                        }
+                        for(i in contents){//文件夹内容呈现
+                            let content = document.createElement('tr');
+                            let name = document.createElement('td');
+                            let hrefName = document.createElement('a');
+                            hrefName.href="javascript:hrefAction(\""+contents[i].fname+"\");";
+                            // hrefName.onclick="hrefAction("+contents[i].fname+");";
+                            hrefName.innerHTML=contents[i].fname;
+                            name.appendChild(hrefName);
+                            let time = document.createElement('td');
+                            time.innerHTML=contents[i].mtime;
+                            let size = document.createElement('td');
+                            size.innerHTML=contents[i].fsize;
+                            let download = document.createElement('td');
+                            let hrefDownload = document.createElement('a');
+                            hrefDownload.href="javascript:hrefAction(\"D\");";
+                            hrefDownload.innerHTML='Télécharger';
+                            download.appendChild(hrefDownload);
+                            content.appendChild(name);
+                            content.appendChild(time);
+                            content.appendChild(size);
+                            content.appendChild(download);
+                            tbody.appendChild(content);
+                        }
+                        
+
+                    });
+
+
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+                    var dropzone = document.getElementById('dropzone')//读取dropbox里的文件数据
+                    dropzone.ondragover = function(e) { //ondragover="myFunction(event)"被拖动物件
+                        e.preventDefault();//可取消拖动
+                    }
+                    dropzone.ondrop = function(e) {//在一个拖动过程中，释放鼠标键时触发此事件
                         e.preventDefault();
                         if(e.dataTransfer.files.length > 1)
                         {
                             alert('Un seul fichier à la fois')
                             return 1;
-                        }else{
+                        }else{//将这个文件filename显示的dropbox下方
                             filediv = document.createElement('div');
                             filename = document.createElement('div');
                             filename.classList.add('filename');
                             filename.innerHTML = e.dataTransfer.files[0].name;
                             filediv.appendChild(filename);
                             document.getElementById('filelist').appendChild(filediv);
-                            files.push({
+                            files.push({//把拖进来的物件放进Files list中，并标记还没有上传false
                                 file: e.dataTransfer.files[0],
                                 done: false
                             });
                         }
                     }
 
-                    // read a chunk from a file
+                    // read a chunk from a file， 读取被允许上传的文件的数据
                     function readFileChunk(file, offset, length, success, error) {
                         end_offset = offset + length;
                         if (end_offset > file.size)
                             end_offset = file.size;
                         var r = new FileReader();
-                        r.onload = function(file, offset, length, e) {
+                        r.onload = function(file, offset, length, e) {//文件一旦开始读取，无论成功或失败，实例的 result 属性都会被填充。
+                            //如果读取失败，则 result 的值为 null ，否则即是读取的结果，绝大多数的程序都会在成功读取文件的时候，抓取这个值
                             if (e.target.error != null)
                                 error(file, offset, length, e.target.error);
                             else
@@ -75,17 +196,17 @@
                         r.readAsArrayBuffer(file.slice(offset, end_offset));
                     }
 
-                    // read success callback
+                    // read success callback 成功读取
                     function onReadSuccess(file, offset, length, data) {
-                        if (this.done)
+                        if (this.done)//this是指Files[0]，如果这个物件一句读取过了就直接返回
                             return;
-                        if (!socket.connected) {
+                        if (!socket.connected) {//如果连接不上也直接返回
                             // the WebSocket connection was lost, wait until it comes back
                             setTimeout(onReadSuccess.bind(this, file, offset, length, data), 5000);
                             return;
                         }
-                        socket.emit('write-chunk-client', this.server_filename, offset, data);
-                    }
+                        socket.emit('write-chunk-client', uploadDir ,this.server_filename, offset, data);
+                    }//把数据传到服务器的write-chunk-client事件
 
                     // read error callback
                     function onReadError(file, offset, length, error) {
@@ -97,113 +218,53 @@
                     // upload button
                     var upload = document.getElementById('upload');
                     upload.onclick = function() {
-                        if (files.length == 0)
+                        if (files.length == 0)//#用户没有上传文件
                             alert('Drop some files above first!');
                         else{
-                            socket.emit('start-transfer-client', files[0].file.name, files[0].file.size);
-                        }
+////////Stop if already uploading
+                            uploadDir = dirCurrent;
+                            socket.emit('start-transfer-client',uploadDir , files[0].file.name, files[0].file.size);
+                        }//客户点了upload按钮之后socket将dropbox读取到的文件的name和size发送给start-transfer-client事件
                     }
 
                     socket.on('allow-transfer', function(filename) {
-                                if (!filename) {
+                                if (!filename) { //如果不允许上传会直接返回False,调用读取失败函数在终端输出读取失败信息，清空dropbox
                                     // the server rejected the transfer
                                     onReadError.call(this, files[0].file, 0, 0, 'Upload rejected by server')
                                 }
-                                else {
+                                else {//如果没有拒绝就会返回文件名
                                     // the server allowed the transfer with the given filename
-                                    console.log(filename)
+                                    console.log(filename)//终端输出文件名
                                     this.server_filename = filename;
                                     readFileChunk(files[0].file, 0, chunk_size,
-                                        onReadSuccess.bind(this),
+                                        onReadSuccess.bind(this),//如果读成功了就会把数据发送到device par server
                                         onReadError.bind(this));
                                 }
-                            });
+                            }); //.bind(files[0])
 
-                    socket.on('chunk-uploaded', function(offset, ack) {
-                            if (!ack)
+                    socket.on('chunk-uploaded', function(offset, ack) {//收到来自device的写文件结果和offset
+                        console.log('offset ' + offset + ' akc ' + ack)
+                            if (!ack)//如果没写成功则显示没有写成功 传输被打断
                                 onReadError(files[0].file, offset, 0, 'Transfer aborted by server')
                         end_offset = offset + chunk_size; //length;
                         console.log(this)
-                        if (end_offset < files[0].file.size)
-                            readFileChunk(files[0].file, end_offset, chunk_size,
+                        if (end_offset < files[0].file.size)//如果文件没有传完
+                            readFileChunk(files[0].file, end_offset, chunk_size,//再次从上次传完的地方开始读取数据并再次传输
                                 onReadSuccess.bind(this),
                                 onReadError.bind(this));
                         else {
                             console.log('Upload done for ' + files[0].file.name);
+                            socket.emit('send urlCurrent', dirCurrent, "" );
                             //this.done = true;
                             files = [];
                         }});
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
-// Shared
 ///////////////////////////////////////////////////////////////////////////////////////////////
-                    var fileData = '';
-                    //var fileMimeType = 'text/plain';
-                    var fileMimeType = 'image/png';
-                    var downloadFilename = '';
-
-                    function updateListing(listing)
-                    {
-                        var dirListing = document.getElementById('dirListing');
-                        dirListing.innerHTML = '';
-
-                        for (let i= 0; i < listing.length; i++) {
-                            let li = document.createElement('button');
-                            li.textContent = listing[i];
-                            li.setAttribute("onclick",'downloadME("'+listing[i]+'");');
-                            dirListing.appendChild(li)
-                        }
-                    }
-
-                    function addToDownloadListing()
-                    {
-                        var downListing = document.getElementById('downloadListing');
-                        let a = document.createElement('a')
-                        a.textContent = 'Save "' + downloadFilename + '"';
-
-                        //console.log(  mime.getType("file.jpg"));
-                        //a.setAttribute("download",downloadFilename);
-                        //a.setAttribute("href",'data:'+fileMimeType+';base64,'+fileDatab64);
-                        //window.location.href = 'data:application/octet-stream;base64,'+fileDatab64;
-
-                        var blob = new Blob([fileData], { type: "text/plain;charset=utf-8" });
-                        //var blob = new Blob([fileData], { type: "image/png" });
-                        saveAs(blob, downloadFilename);
-                        //downListing.appendChild(a);
-
-                        fileData = '';
-                        fileMimeType = '';
-                        downloadFilename = '';
-
-                    }
-
-                    function downloadME(filename)
-                    {
-                        console.log('Downloading: ' + filename);
-                        downloadFilename = filename;
-                        socket.emit('ask Download', filename, 0);
-                    }
-
-                    socket.on('downloaded Data - to Client', function(offset, data, stop) {
-                        fileData += atob(data);
-                        console.log(fileData);
-                        if(stop == false){
-                            console.log("we going")
-                            socket.emit('ask Download', downloadFilename, offset + (64 * 1024));
-                        }
-                        else{
-                            addToDownloadListing();
-                        }
-                    });
-
-                    socket.on('give Listing - Client', function(listing) {
-                        console.log(listing);
-                        updateListing(listing);
-                    });
 
                     // Quand on demande à se connecter à un device précis, ID est l'ID du device dans la DB
                     // Pour l'instant on se connect directement au device quand il s'advertise. En production les devices ne s'advertiseront pas aux clients
-                    socket.on('Device advertised', function(id) {
+                    socket.on('Device advertised', function(id) {//收到新连接设备的Id并发给服务器
                         console.log('New device detected: ' + id);
                         socket.emit('Link Device', id);
                     });
@@ -213,8 +274,7 @@
                         console.log('I am linked to: ' + device);
 
                         //Juste histoire de pouvoir tester la suite des events
-                        socket.emit('to Device', 'Hello, Shared Folder');
-                        socket.emit('give Listing');
+                        socket.emit('to Device', 'Hello, Shared Folder')
                     });
 
                     socket.on('from Device', function(data) {
