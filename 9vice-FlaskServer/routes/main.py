@@ -27,7 +27,7 @@ SALT = os.getenv("SALT")
 def index():
     formatter = HtmlFormatter(style="emacs", full=True, cssclass="codehilite")
     css_string = formatter.get_style_defs()
-    readmeFile = open(os.getcwd() + "/README.md", 'r')
+    readmeFile = open(os.getcwd() + "/README.md", 'r', encoding="utf-8")
     mdTemplateString = markdown.markdown(readmeFile.read(), extensions=['markdown.extensions.fenced_code',
                                                                         'markdown.extensions.codehilite'])
     md_css_string = "<style>" + css_string + "</style>"

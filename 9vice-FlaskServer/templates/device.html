@@ -9,7 +9,30 @@
         <div class="container py-2">
             <h1 class="h1 mb-3 fw-normal text-center">Device : {{ device['name'] }}</h1>
 
-            <img id="video"></img>
+            {% if device["camera"] %}
+                <h2>Camera</h2>
+                <img id="video"></img>
+            {% endif %}
+            {%  if device["micro"]%}
+                <h2>Micro</h2>
+            {% endif %}
+            {% if device["folder"] %}
+                <h2>Dossier partagé</h2>
+                <div class="album bg-light rounded">
+                    <div class="container py-2">
+                        <h1 class="h3 mb-3 fw-normal text-center">Partage de fichier</h1>
+                        <div class="container">
+                            <div id="dropzone">
+                                <p>Drop ton fichier</p>
+                            </div>
+                            <button class="btn btn-primary" id="upload">Upload fichier</button>
+                            <div id="filelist">
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
             <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
                     integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
                     crossorigin="anonymous">
@@ -21,6 +44,7 @@
                 socket.on('connect', function () {
                     console.log('Connected to Server');
                     socket.emit('Connect Client', {data: 'Client Connected'});
+                    socket.emit('Link Device', {{ device['id_device'] }})
                 });
 
                 // Quand on demande à se connecter à un device précis, ID est l'ID du device dans la DB

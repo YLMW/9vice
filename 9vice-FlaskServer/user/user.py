@@ -23,9 +23,8 @@ def beautify_info(user_info: tuple) -> dict:
                         int(hour) == 0 and int(min) < 5) else day + "j " + hour + "h " + min + "m " + sec + "s"
             else:
                 activite = "+30 jours"
-
-
-
+    else:
+        activite = lastcon
 
     info = {
         "id": user_info[0],

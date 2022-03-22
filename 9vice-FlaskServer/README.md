@@ -1,13 +1,13 @@
 
-# <img src="https://github.com/YLMW/9vice/blob/main/9vice-FlaskServer/static/logo.svg" alt="logo 9vice" width="100"/>
+# <img src="https://raw.githubusercontent.com/YLMW/9vice/main/9vice-FlaskServer/static/logo.svg" alt="logo 9vice" width="100"/>
 
-## Introduction 📘
+## Introduction :blue_book:
 
 Dans le cadre du développement d'une application sécurisée, nous avons implémenté un service permettant la gestion ainsi que la mise en relation, d'utilisateurs et leurs devices. Un device pouvant être représenté par un système de fichier, un flux vidéo et/ou un flux audio. L'aspect sécurité du service doit être explicité et à une place importante dans ce projet.
 
 
 
-## Installation 🛠️
+## Installation :hammer:
 
 Pour pouvoir utiliser notre application il vous sera necessaire de réunir les technologies suivantes :
 
@@ -97,7 +97,7 @@ psql> UPDATE device.users SET isAdmin=true WHERE username=UsernameToChange;
 **:warning: Veillez à remplacer les variables finissant par ToChange par les valeurs de l'utilisateur concerné.**
 
 ---
-### API - 9vice-FlaskServer :computer:
+### API - 9vice-FlaskServer :package:
 
 #### Variables d'environnement
 

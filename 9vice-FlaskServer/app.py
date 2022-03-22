@@ -2,6 +2,7 @@
 # Import des libs python
 import hashlib
 import os
+import emoji
 
 from dotenv import load_dotenv
 from flask import Flask, render_template, request
@@ -31,6 +32,10 @@ SALT = os.getenv("SALT")
 app.config['SECRET_KEY'] = SECRET
 socketio = SocketIO(app)
 
+
+@app.template_filter('emojify')
+def emoji_filter(s):
+    return emoji.emojize(s)
 
 # Interception de l'erreur 404
 @app.errorhandler(404)
@@ -70,13 +75,13 @@ def handle_device_connection(data):
         if set_active(id_user, ID):
             DeviceID[request.sid] = ID
             CurrentDeviceList[request.sid] = ID
-            emit('Device advertised', ID, broadcast=True)
+            emit('Device advertised', {"ID": ID}, broadcast=True)
             return
     raise ConnectionRefusedError('unauthorized!')
 
 
-@socketio.on('disconnect')
-def test_disco():
+@socketio.on('Device disconnected')
+def test_disco(data):
     print('request.sid ' + request.sid)
     # Code de vérif que request.sid € CurrentDeviceList
     id_to_inactive = CurrentDeviceList.get(request.sid)
