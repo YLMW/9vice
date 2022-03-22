@@ -5,6 +5,7 @@ from flask_socketio import SocketIO
 from flask_socketio import send, emit # Pour utiliser send et emit => réponse du serveur
 from flask_socketio import join_room, leave_room    # Les rooms
 from flask import request   # request.sid
+import os
 
 # Import des blueprints de routage
 from routes.main import main
@@ -65,6 +66,11 @@ def link_device_client(ID):
     DeviceID.pop(device_sid)  # Pour ne pas réattribuer la même websocket de Device à un autre client on la retire de la liste
     #一个设备id只对应一个客户sid，所以连接在客户有了设备sid之后便把该sid抛出，如有新的对设备的访问请求则产生新的sid重新加入
 
+@socketio.on('update-device')
+def to_device(dirCurrent):
+    target = clientDevice[request.sid]
+    print('Sending: "' + dirCurrent + '" to device')
+    emit('show fichiers', (dirCurrent,''),room=target)
 
 @socketio.on('to Device')
 def to_device(data):
@@ -72,7 +78,7 @@ def to_device(data):
     print('Sending: "' + data + '" to device')
     emit('from Client', data, room=target)
     # emit('stream Webcam', room=target) # Just to get things started
-    emit('show fichiers', ('',''),room=target) # Just to get things started, si on veux fusionner les codes,
+    emit('show fichiers', ('','begin'),room=target) # Just to get things started, si on veux fusionner les codes,
                     #ici c'est l'Event: client a choisi un device pour acceder dans le dossier partager
 
 
@@ -81,6 +87,15 @@ def to_client(data):
     target = get_key(request.sid, clientDevice)
     print('Sending: "' + data + '" to client')
     emit('from Device', data, room=target)
+
+@socketio.on('ask-update')
+def Update(dirCurrent):
+    target = get_key(request.sid, clientDevice)
+    if not dirCurrent:
+        emit('alert', "Directory already exist", room=target)
+    else:
+        print('Sending: "' + dirCurrent + '" to client')
+        emit('update', dirCurrent, room=target)
 
 ########################################################################################################################
 
@@ -128,6 +143,12 @@ def send_url_current(dirCurrent, filename):
     print('send urlCurrent to device' )
     target = clientDevice[request.sid]
     emit('show fichiers', (dirCurrent, filename), room=target )
+
+@socketio.on('create-new-directory')#to device
+def send_dirname(dirname, dirCurrent):
+    print('send new dirname to device' )
+    target = clientDevice[request.sid]
+    emit('create-directory', (dirname,dirCurrent), room=target )
 
 @socketio.on('read file')
 def send_filename(dirCurrent, filename):

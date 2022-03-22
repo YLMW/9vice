@@ -5,7 +5,11 @@ import
 9vice-FlaskServer/.idea/*
 9vice-FlaskServer/__pycache__
 9vice-FlaskServer/routes/__pycache__
+9vice-Device/__pycache__
 
 .idea/*
 9vice-FlaskServer/.env
 venv/*
+
+#mac
+.DS_Store

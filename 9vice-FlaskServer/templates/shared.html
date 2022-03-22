@@ -16,6 +16,8 @@
             </div>
 
             <button id="upload">Upload files</button>
+            <button id="create">Create directory</button>
+
             <div id="filelist"></div>
             <hr>
             <h3>Documents</h3>
@@ -52,6 +54,7 @@ console.log("Decrypted data (Utf8): " + decryptedUtf8);
                     const chunk_size = 64 * 1024;
                     var files = [];
                     uploadDir = '';
+                    var dirCurrent = '/'; //au debut on es dans root
 
                     var socket = io();
                     var device = '';
@@ -86,8 +89,6 @@ console.log("Decrypted data (Utf8): " + decryptedUtf8);
                     tableEle.appendChild(thead);
                     tableEle.appendChild(tbody);  
 
-                    var dirCurrent = ''; //au debut on es dans root
-
                     function hrefAction(filename){
                         if(filename.substr(filename.length-1,1)=='/'){//it's a dossier
                             console.log("我要进这个文件夹"+dirCurrent+filename);
@@ -95,9 +96,9 @@ console.log("Decrypted data (Utf8): " + decryptedUtf8);
                             socket.emit('send urlCurrent', dirCurrent, filename );
                         }
                         else{
-                            if(filename == "D"){
+                            if(filename == "D"){//download
 
-                            }else{
+                            }else{//read a file
                                 socket.emit('read file', dirCurrent, filename );
                             }
                         }
@@ -110,7 +111,7 @@ console.log("Decrypted data (Utf8): " + decryptedUtf8);
                         console.log('I received: ' + rootUrl +dirCurrent+ contents +ossep);
                         var path=document.getElementById('pathCurrent').innerHTML = "Path: "+dirCurrent; 
                         tbody.innerHTML='';
-                        if(dirCurrent != ''){
+                        if(dirCurrent != '/'){
                             let backRoot = document.createElement('tr');
                             let pathRoot = document.createElement('td');
                             let hrefRoot = document.createElement('a');
@@ -172,7 +173,7 @@ console.log("Decrypted data (Utf8): " + decryptedUtf8);
                             filename.classList.add('filename');
                             filename.innerHTML = e.dataTransfer.files[0].name;
                             filediv.appendChild(filename);
-                            document.getElementById('filelist').appendChild(filediv);
+                            fList = document.getElementById('filelist').appendChild(filediv);
                             files.push({//把拖进来的物件放进Files list中，并标记还没有上传false
                                 file: e.dataTransfer.files[0],
                                 done: false
@@ -205,6 +206,7 @@ console.log("Decrypted data (Utf8): " + decryptedUtf8);
                             setTimeout(onReadSuccess.bind(this, file, offset, length, data), 5000);
                             return;
                         }
+                        fList.innerHTML='';
                         socket.emit('write-chunk-client', uploadDir ,this.server_filename, offset, data);
                     }//把数据传到服务器的write-chunk-client事件
 
@@ -213,6 +215,7 @@ console.log("Decrypted data (Utf8): " + decryptedUtf8);
                         console.log('Upload error for ' + file.name + ': ' + error);
                         //files[0].done = true;
                         files = [];
+                        fList.innerHTML='';
                     }
 
                     // upload button
@@ -226,6 +229,26 @@ console.log("Decrypted data (Utf8): " + decryptedUtf8);
                             socket.emit('start-transfer-client',uploadDir , files[0].file.name, files[0].file.size);
                         }//客户点了upload按钮之后socket将dropbox读取到的文件的name和size发送给start-transfer-client事件
                     }
+
+                    var createdir = document.getElementById('create');//create directory
+                    createdir.onclick = function() {
+                        var x = prompt ("Directory name: ", "newDirectory");
+                        console.log(x);
+
+                        var containSpecial = RegExp(//验证文件夹名字中是否有可疑字符
+                            /[(\ )(\~)(\!)(\@)(\#)(\$)(\%)(\^)(\&)(\*)(\()(\))(\-)(\+)(\=)(\[)(\])(\{)(\})(\|)(\\)(\;)(\:)(\')(\")(\,)(\.)(\/)(\<)(\>)(\?)(\)]+/
+                        );
+                        if(containSpecial.test(x)){
+                            alert("Allow only letters numbers and '_'")
+                        }else{
+                            socket.emit('create-new-directory', x, dirCurrent);
+                        }
+                        //客户点了create按钮之后
+                    }
+
+
+
+
 
                     socket.on('allow-transfer', function(filename) {
                                 if (!filename) { //如果不允许上传会直接返回False,调用读取失败函数在终端输出读取失败信息，清空dropbox
@@ -280,6 +303,15 @@ console.log("Decrypted data (Utf8): " + decryptedUtf8);
                     socket.on('from Device', function(data) {
                         console.log('I received: ' + data);
                     });
+
+                    socket.on('update',function(dirCurrent){
+                        socket.emit('update-device',dirCurrent)
+                    })
+
+                    socket.on('alert', function(error){
+                        console.log(error);
+                        alert(error);
+                    })
 
                     ///////////////////////////////////
                     //       Temporary events        //

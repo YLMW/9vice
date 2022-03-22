@@ -80,6 +80,7 @@ def send_data():
 ########################################################################################################################
 os.chdir('./shared/')
 rootdir = os.getcwd()
+
 @sio.on('start-transfer-device')#判断文件格式和文件名，如果包含可以信息则拒绝，返回False
 def start_transfer(uploadDir, filename, size):
     print("analyzing file")
@@ -94,8 +95,8 @@ def start_transfer(uploadDir, filename, size):
         return False
 
     print("extensions allowed")
-    print(rootdir + uploadDir + '/' + root + '.json')
-    with open(rootdir + uploadDir + '/' + root + ext, 'wb') as f:#暂时无用
+    print(rootdir + uploadDir + root + '.json')
+    with open(rootdir + uploadDir + root + ext, 'wb') as f:#暂时无用
         print("wb")
         pass
     print("returning " + root + ext)
@@ -105,11 +106,11 @@ def start_transfer(uploadDir, filename, size):
 @sio.on('write-chunk-device')#收到客户端传来的数据，写进device的指定文件夹中
 def write_chunk(uploadDir ,filename, offset, data):#写数据
     """Write a chunk of data sent by the client."""
-    if not os.path.exists(rootdir + uploadDir  + '/' + filename):#如果该文件不存在则返回false
+    if not os.path.exists(rootdir + uploadDir + filename):#如果该文件不存在则返回false
         sio.emit('chunk-uploaded-device', (offset, False))
         return False
     try:
-        with open(rootdir + uploadDir  + '/' + filename, 'r+b') as f:#否则打开文件从sffset开始写入data
+        with open(rootdir + uploadDir + filename, 'r+b') as f:#否则打开文件从sffset开始写入data
             f.seek(offset)
             f.write(data)
     except IOError:
@@ -124,14 +125,18 @@ def show_fichiers(dirCurrent, filename):
     """  """
     root, ext = os.path.splitext(filename)
 
-    if(filename == '' or filename == ".."):
-        # 名字为空，切换到根目录
+    if(filename == 'begin' or filename == ".."):
+        #切换到根目录
         os.chdir(rootdir)
-        dirCurrent=''
+        dirCurrent=os.sep
+
+    elif(filename == ''):
+        os.chdir(rootdir + dirCurrent)
+
     elif root.__contains__('.'):
         print('Directory traversal ?')
         os.chdir(rootdir)
-        dirCurrent = ''
+        dirCurrent = os.sep
     else:
         fullname = os.getcwd()+os.sep+filename #os.sep= '/' ou '\' ca depend le systeme, pour nous linux c'est '/'
         #  fichier，download
@@ -141,7 +146,7 @@ def show_fichiers(dirCurrent, filename):
             return
         else:
             os.chdir(fullname) #进入文件夹
-            dirCurrent += os.sep+filename #更改现在所处地址
+            dirCurrent += filename+os.sep #更改现在所处地址
 
     contents= []
     for i in sorted(os.listdir(os.getcwd())):
@@ -155,6 +160,17 @@ def show_fichiers(dirCurrent, filename):
         contents.append(content)
 
     sio.emit('send url root', (rootdir, dirCurrent, contents, os.sep) )
+
+@sio.on('create-directory')
+def create_directory(x,dirCurrent):
+    pathNewDir = os.getcwd() +os.sep+ x
+    print("create new dir" + pathNewDir)
+    try:
+        os.makedirs(pathNewDir)# Si ça marche          
+    except Exception as e:
+        print(e) # Si ca marche pas
+        dirCurrent = False
+    sio.emit('ask-update',dirCurrent)
 
 @sio.on('read_file_asked')
 def read_file_asked(dirCurrent, filename):
