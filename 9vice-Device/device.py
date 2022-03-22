@@ -8,6 +8,7 @@ cap=cv2.VideoCapture(0) # Le 1 c'est pour ma webcam
 
 # Probablement un truc qui finira dans un .env, moi j'y connais rien
 ID = '9'
+chunk_size = 64 * 1024
 
 # standard Python
 sio = socketio.Client()
@@ -102,9 +103,9 @@ def check_download(filename, offset):
     try:
         with open('./shared/' + filename, 'r+b') as f:
             f.seek(offset)
-            data = f.read(64 * 1024)
+            data = f.read(chunk_size)
             data = base64.b64encode(data).decode('utf-8')
-            if offset + (64 * 1024) >= os.path.getsize('./shared/' + filename):
+            if offset + (chunk_size) >= os.path.getsize('./shared/' + filename):
                 stop = True
             else:
                 stop = False
