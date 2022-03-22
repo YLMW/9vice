@@ -16,6 +16,8 @@ from routes.main import main
 from routes.auth import auth
 from user.device import get_device_id, get_device_hash, set_active, set_inactive
 
+import logging
+
 # Creation de l'appli
 app = Flask(__name__, template_folder='templates/')
 
@@ -32,6 +34,9 @@ SALT = os.getenv("SALT")
 app.config['SECRET_KEY'] = SECRET
 socketio = SocketIO(app)
 
+log=logging.getLogger('werkzeug')
+log.disabled = True
+app.logger.disabled = True
 
 @app.template_filter('emojify')
 def emoji_filter(s):
@@ -92,23 +97,28 @@ def test_disco(data):
 @socketio.on('Link Device')
 def link_device_client(ID):
     device_sid = get_key(ID, DeviceID)
-    print('Linking client and device, C_sid: ' + request.sid + ', D_sid: ' + device_sid)
-    clientDevice[request.sid] = device_sid
+    if device_sid == None:
+        print('No device available')
+        emit('No Device')
+    else:
+        print('Linking client and device, C_sid: ' + request.sid + ', D_sid: ' + device_sid)
+        clientDevice[request.sid] = device_sid
 
-    emit('Linked', clientDevice[request.sid], room=request.sid)
-    print('Client Knows - ' + device_sid)
+        emit('Linked', clientDevice[request.sid], room=request.sid)
+        print('Client Knows - ' + device_sid)
 
-    emit('Linked', request.sid, room=device_sid)
-    print('Device Knows - ' + request.sid)
+        emit('Linked', request.sid, room=device_sid)
+        print('Device Knows - ' + request.sid)
 
-    DeviceID.pop(
-        device_sid)  # Pour ne pas réattribuer la même websocket de Device à un autre client on la retire de la liste
+        DeviceID.pop(
+            device_sid)  # Pour ne pas réattribuer la même websocket de Device à un autre client on la retire de la liste
 
-
+# Camera
+########################################################################################################################
 @socketio.on('to Device')
 def to_device(data):
     target = clientDevice[request.sid]
-    print('Sending: "' + data + '" to device')
+    #print('Sending: "' + data + '" to device')
     emit('from Client', data, room=target)
     emit('stream Webcam', room=target)  # Just to get things started
 
@@ -116,8 +126,80 @@ def to_device(data):
 @socketio.on('to Client')
 def to_client(data):
     target = get_key(request.sid, clientDevice)
-    print('Sending: "' + data + '" to client')
+    #print('Sending: "' + data + '" to client')
     emit('from Device', data, room=target)
+
+
+@socketio.on('camera Stopped - Device')
+def to_client():
+    target = get_key(request.sid, clientDevice)
+    print('Stopping Camera')
+    emit('camera Stopped - Client', room=target)\
+
+
+@socketio.on('ask Stop Webcam')
+def to_device():
+    target = clientDevice[request.sid]
+    print('asking to stop Webcam')
+    emit('ask Stop Webcam - Device', room=target)
+########################################################################################################################
+
+# Upload
+########################################################################################################################
+@socketio.on('allow-transfer-device')
+def allow_transfer(answer):
+    target = get_key(request.sid, clientDevice)
+    print('in callback ' + answer + ' target ' + target)
+    emit('allow-transfer', answer, room=target)
+
+
+@socketio.on('chunk-uploaded-device')
+def allow_transfer(offset, ack):
+    target = get_key(request.sid, clientDevice)
+    print('in callback ' + str(offset) + ' ack: ' + str(ack))
+    emit('chunk-uploaded', (offset, ack), room=target)
+
+
+@socketio.on('start-transfer-client')
+def start_transfer(filename, size):
+    print('asking permission to write ' + filename + ' of size ' + str(size))
+    target = clientDevice[request.sid]
+    emit('start-transfer-device', (filename, size), room=target)
+
+
+@socketio.on('write-chunk-client')
+def write_chunk(filename, offset, data):
+    print('Writing data to ' + filename + ' offset: ' + str(offset))
+    target = clientDevice[request.sid]
+    emit('write-chunk-device', (filename, offset, data), room=target)
+########################################################################################################################
+
+# Shared Folder
+########################################################################################################################
+@socketio.on('give Listing')
+def give_listing():
+    print('Giving listing')
+    target = clientDevice[request.sid]
+    emit('give Listing - Device', room=target)
+
+
+@socketio.on('returning Listing')
+def give_listing(listing):
+    target = get_key(request.sid, clientDevice)
+    emit('give Listing - Client', listing, room=target)
+
+@socketio.on('ask Download')
+def ask_download(filename, offset):
+    target = clientDevice[request.sid]
+    emit('download File', (filename, offset), room=target)
+
+@socketio.on('returning Downloading')
+def send_download(offset, data, stop):
+    target = get_key(request.sid, clientDevice)
+    print('Downing Client ' + str(offset))
+    emit('downloaded Data - to Client', (offset, data, stop), room=target)
+
+########################################################################################################################
 
 
 ######################################

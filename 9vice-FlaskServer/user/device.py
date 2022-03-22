@@ -1,6 +1,4 @@
 from requester.request import Requester
-from crypto import crypto
-from datetime import datetime
 
 
 def beautify_device(device_info: tuple) -> dict:

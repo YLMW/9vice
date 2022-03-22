@@ -4,14 +4,49 @@
 {% set title = 'Device' %}
 
 {% block content %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
+                    integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
+                    crossorigin="anonymous">
+    </script>
+    <script type="text/javascript" charset="utf-8">
+        // Code Socket Universel
+        var socket = io();
+        var device = '';
 
+        socket.on('connect', function () {
+            console.log('Connected to Server');
+            socket.emit('Connect Client', {data: 'Client Connected'});
+            socket.emit('Link Device', {{ device['id_device'] }})
+        });
+
+        socket.on('No Device', function() {
+            console.log('No device Available');
+            setTimeout( function() {
+                socket.emit('Link Device', {{ device['id_device'] }});
+            }, 2500);
+        });
+
+        socket.on('Linked', function (deviceSID) {
+            device = deviceSID;
+            console.log('I am linked to: ' + device);
+            //Juste histoire de pouvoir tester la suite des events
+        });
+
+    </script>
     <div class="album bg-light rounded">
-        <div class="container py-2">
+        <div class="container py-2 ">
             <h1 class="h1 mb-3 fw-normal text-center">Device : {{ device['name'] }}</h1>
 
             {% if device["camera"] %}
-                <h2>Camera</h2>
-                <img id="video"></img>
+                <div class="album bg-light rounded">
+                    <div class="container py-2 d-flex flex-column justify-around align-center">
+                        <h1 class="h3 mb-3 fw-normal text-center">Camera</h1>
+                        <div class="container">
+                            <img id="video"></img>
+                        </div>
+                        <button class="btn btn-primary" id="streaming" onclick="startCamera()">Activer Camera</button>
+                    </div>
+                </div>
             {% endif %}
             {%  if device["micro"]%}
                 <h2>Micro</h2>
@@ -22,50 +57,245 @@
                     <div class="container py-2">
                         <h1 class="h3 mb-3 fw-normal text-center">Partage de fichier</h1>
                         <div class="container">
-                            <div id="dropzone">
+                            <div id="dropzone" class="file-upload-wrapper">
                                 <p>Drop ton fichier</p>
                             </div>
-                            <button class="btn btn-primary" id="upload">Upload fichier</button>
+                            <div>
+                                <button class="btn btn-primary" id="upload">Upload fichier</button>
+                            </div>
+
                             <div id="filelist">
+
+                            </div>
+                            <div id="dirListing">
+
+                            </div>
+                            <div id="downloadListing">
 
                             </div>
                         </div>
                     </div>
                 </div>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.0/FileSaver.min.js"></script>
+                <script type="text/javascript" charset="utf-8">
+                    // Code Socket Shared Folder
+                    const chunk_size = 64 * 1024;
+                    const chunk_size_D = 64 * 1024;
+                    var files = [];
+
+//Upload
+///////////////////////////////////////////////////////////////////////////////////////////////
+                    var dropzone = document.getElementById('dropzone');
+                    dropzone.ondragover = function(e) {
+                        e.preventDefault();
+                    }
+                    dropzone.ondrop = function(e) {
+                        e.preventDefault();
+                        if(e.dataTransfer.files.length > 1)
+                        {
+                            alert('Un seul fichier à la fois')
+                            return 1;
+                        }else{
+                            filediv = document.createElement('div');
+                            filename = document.createElement('div');
+                            filename.classList.add('filename');
+                            filename.innerHTML = e.dataTransfer.files[0].name;
+                            filediv.appendChild(filename);
+                            document.getElementById('filelist').appendChild(filediv);
+                            files.push({
+                                file: e.dataTransfer.files[0],
+                                done: false
+                            });
+                        }
+                    }
+
+                    // read a chunk from a file
+                    function readFileChunk(file, offset, length, success, error) {
+                        end_offset = offset + length;
+                        if (end_offset > file.size)
+                            end_offset = file.size;
+                        var r = new FileReader();
+                        r.onload = function(file, offset, length, e) {
+                            if (e.target.error != null)
+                                error(file, offset, length, e.target.error);
+                            else
+                                success(file, offset, length, e.target.result);
+                        }.bind(r, file, offset, length);
+                        r.readAsArrayBuffer(file.slice(offset, end_offset));
+                    }
+
+                    // read success callback
+                    function onReadSuccess(file, offset, length, data) {
+                        if (this.done)
+                            return;
+                        if (!socket.connected) {
+                            // the WebSocket connection was lost, wait until it comes back
+                            setTimeout(onReadSuccess.bind(this, file, offset, length, data), 5000);
+                            return;
+                        }
+                        socket.emit('write-chunk-client', this.server_filename, offset, data);
+                    }
+
+                    // read error callback
+                    function onReadError(file, offset, length, error) {
+                        console.log('Upload error for ' + file.name + ': ' + error);
+                        //files[0].done = true;
+                        files = [];
+                    }
+
+                    // upload button
+                    var upload = document.getElementById('upload');
+                    upload.onclick = function() {
+                        if (files.length == 0)
+                            alert('Drop some files above first!');
+                        else{
+                            socket.emit('start-transfer-client', files[0].file.name, files[0].file.size);
+                        }
+                    }
+
+                    socket.on('allow-transfer', function(filename) {
+                                if (!filename) {
+                                    // the server rejected the transfer
+                                    onReadError.call(this, files[0].file, 0, 0, 'Upload rejected by server')
+                                }
+                                else {
+                                    // the server allowed the transfer with the given filename
+                                    console.log(filename)
+                                    this.server_filename = filename;
+                                    readFileChunk(files[0].file, 0, chunk_size,
+                                        onReadSuccess.bind(this),
+                                        onReadError.bind(this));
+                                }
+                            });
+
+                    socket.on('chunk-uploaded', function(offset, ack) {
+                        if (!ack)
+                                onReadError(files[0].file, offset, 0, 'Transfer aborted by server')
+                        end_offset = offset + chunk_size; //length;
+                        console.log(this)
+                        if (end_offset < files[0].file.size)
+                            readFileChunk(files[0].file, end_offset, chunk_size,
+                                onReadSuccess.bind(this),
+                                onReadError.bind(this));
+                        else {
+                            console.log('Upload done for ' + files[0].file.name);
+                            //this.done = true;
+                            files = [];
+                        }});
+///////////////////////////////////////////////////////////////////////////////////////////////
+
+// Shared
+///////////////////////////////////////////////////////////////////////////////////////////////
+                    // Premier affichage du contenu du dossier
+                    console.log('Send listing');
+                    socket.emit('give Listing');
+
+                    var fileData = '';
+                    //var fileMimeType = 'text/plain';
+                    var fileMimeType = 'image/png';
+                    var downloadFilename = '';
+
+                    function updateListing(listing)
+                    {
+                        var dirListing = document.getElementById('dirListing');
+                        dirListing.innerHTML = '';
+
+                        for (let i= 0; i < listing.length; i++) {
+                            let li = document.createElement('button');
+                            li.textContent = listing[i];
+                            li.setAttribute("onclick",'downloadME("'+listing[i]+'");');
+                            dirListing.appendChild(li)
+                        }
+                    }
+
+                    const b64toBlob = (decodedData, contentType='', sliceSize=512) => {
+                      const byteCharacters = decodedData;
+                      const byteArrays = [];
+
+                      for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+                        const slice = byteCharacters.slice(offset, offset + sliceSize);
+
+                        const byteNumbers = new Array(slice.length);
+                        for (let i = 0; i < slice.length; i++) {
+                          byteNumbers[i] = slice.charCodeAt(i);
+                        }
+
+                        const byteArray = new Uint8Array(byteNumbers);
+                        byteArrays.push(byteArray);
+                      }
+
+                      const blob = new Blob(byteArrays, {type: contentType});
+                      return blob;
+                    }
+
+                    function addToDownloadListing()
+                    {
+                        //var downListing = document.getElementById('downloadListing');
+                        //let a = document.createElement('a')
+
+                        //var blob = b64toBlob(fileData, "image/png");
+                        var blob = b64toBlob(fileData, "application/octet-stream");
+                        saveAs(blob, downloadFilename);
+
+                        fileData = '';
+                        fileMimeType = '';
+                        downloadFilename = '';
+
+                    }
+
+                    function downloadME(filename)
+                    {
+                        console.log('Downloading: ' + filename);
+                        downloadFilename = filename;
+                        socket.emit('ask Download', filename, 0);
+                    }
+
+                    socket.on('downloaded Data - to Client', function(offset, data, stop) {
+                        fileData += atob(data);
+                        if(stop == false){
+                            socket.emit('ask Download', downloadFilename, offset + (chunk_size_D));
+                        }
+                        else{
+                            addToDownloadListing();
+                        }
+                    });
+
+                    socket.on('give Listing - Client', function(listing) {
+                        console.log(listing);
+                        updateListing(listing);
+                    });
+                </script>
             {% endif %}
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
-                    integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
-                    crossorigin="anonymous">
-            </script>
             <script type="text/javascript" charset="utf-8">
-                var socket = io();
-                var device = '';
 
-                socket.on('connect', function () {
-                    console.log('Connected to Server');
-                    socket.emit('Connect Client', {data: 'Client Connected'});
-                    socket.emit('Link Device', {{ device['id_device'] }})
-                });
-
-                // Quand on demande à se connecter à un device précis, ID est l'ID du device dans la DB
-                // Pour l'instant on se connect directement au device quand il s'advertise. En production les devices ne s'advertiseront pas aux clients
-                socket.on('Device advertised', function (id) {
-                    console.log('New device detected: ' + id);
-                    socket.emit('Link Device', id);
-                });
-
-                socket.on('Linked', function (deviceSID) {
-                    device = deviceSID;
-                    console.log('I am linked to: ' + device);
-
-                    //Juste histoire de pouvoir tester la suite des events
-                    socket.emit('to Device', 'Hello my dear Device')
-                });
-
+                ///////////////////////////////////
+                //             Camera            //
+                ///////////////////////////////////
                 socket.on('from Device', function (data) {
-                    console.log('I received: ' + data);
                     const image_element = document.getElementById('video');
                     image_element.src = "data:image/jpeg;base64," + data;
+                });
+
+                function startCamera() {
+                    socket.emit('to Device', 'Hello my dear Device');
+                    var streamButton = document.getElementById('streaming');
+                    streamButton.className = 'btn btn-danger'
+                    streamButton.innerText = 'Stop Camera';
+                    streamButton.setAttribute("onclick",'stopCamera()');
+                }
+
+                function stopCamera() {
+                    console.log('Asking to stop');
+                    socket.emit('ask Stop Webcam');
+                }
+
+                socket.on('camera Stopped - Client', function() {
+                    console.log('Camera stopped')
+                    var streamButton = document.getElementById('streaming');
+                    streamButton.className = 'btn btn-primary'
+                    streamButton.innerText = 'Activer Camera';
+
+                    streamButton.setAttribute("onclick",'startCamera()');
                 });
 
                 ///////////////////////////////////
