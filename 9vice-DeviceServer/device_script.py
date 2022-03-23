@@ -1,10 +1,11 @@
 import socketio
 import json
-from crypto.crypto import AESCipher
 import base64
 from time import sleep
 import time
 import cv2
+import hashlib
+from crypto.crypto import *
 
 import os
 from dotenv import load_dotenv
@@ -21,7 +22,11 @@ SERVER_KEY = os.getenv("SERVER_KEY")
 CLIENT_KEY = os.getenv("CLIENT_KEY")
 SHARED_FOLDER = os.getenv("FILE_PATH")
 
-aes = AESCipher(CLIENT_KEY)
+
+SECRET = hashlib.sha256(CLIENT_KEY.replace("\n", "").encode()).hexdigest()[0:32]
+print('Secret = ' + SECRET)
+
+print(SECRET)
 
 URL = 'http://127.0.0.1:5000'
 
@@ -69,9 +74,13 @@ def send_data():
         ret, img = cap.read()
         if ret:
             img = cv2.resize(img, (0, 0), fx=1, fy=1)
+            img = cv2.flip(img, 1)
             frame = cv2.imencode('.jpg', img)[1].tobytes()
             frame = base64.encodebytes(frame).decode("utf-8")
-            sio.emit('to Client', frame)
+            print(frame)
+            print('')
+            encrypted_frame = aes_cbc_encrypt_text(frame, SECRET)
+            sio.emit('to Client', encrypted_frame)
             sleep(0.016) # 60 fps master race
         else:
             break
@@ -94,15 +103,19 @@ def start_transfer(uploadDir, filename, size):
     """Process an upload request from the client."""
     root, ext = os.path.splitext(filename)#pour savoir le type de fichier
     if ext in ['.exe', '.bin', '.js', '.sh', '.py', '.php']:#ne permet pas des fichiers de codes
-        sio.emit('allow-transfer-device')
+        sio.emit('allow-transfer-device', '..Denied..')
         return False  # reject the upload
     if root.__contains__('..') or uploadDir.__contains__('..'):
         print('Directory traversal ?')
-        sio.emit('allow-transfer-device')
+        sio.emit('allow-transfer-device', '..Denied..')
         return False
 
     print("extensions allowed")
     print(rootdir + uploadDir + root + '.json')
+    if os.path.exists(rootdir + uploadDir + filename):
+        print('File exists already')
+        sio.emit('allow-transfer-device', '..Denied..')
+        return False
     with open(rootdir + uploadDir + root + ext, 'wb') as f:#暂时无用
         print("wb")
         pass

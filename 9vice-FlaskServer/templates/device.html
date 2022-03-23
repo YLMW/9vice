@@ -4,14 +4,20 @@
 {% set title = 'Device' %}
 
 {% block content %}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/aes.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.js"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
             integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
             crossorigin="anonymous">
     </script>
+
     <script type="text/javascript" charset="utf-8">
         // Code Socket Universel
+        var pass = prompt("Entrez la clé secrète de votre device pour pouvoir déchiffrer les communication")
+        var SECRET = CryptoJS.SHA256(pass).toString(); // SHA256
+	    SECRET = SECRET.slice(0,32);
+        console.log(SECRET)
+
         var socket = io();
         var device = '';
 
@@ -34,6 +40,46 @@
             //Juste histoire de pouvoir tester la suite des events
         });
 
+        function AESdecrypt(ivCipherText, key){
+
+		console.log('Start Decr');
+		var ivB64 = ivCipherText.slice(0, 24);
+		var iv = atob(ivB64);
+		data = ivCipherText.slice(24);
+		console.log('Sliced');
+
+		key = CryptoJS.enc.Utf8.parse(key);
+		iv  = CryptoJS.enc.Utf8.parse(iv);
+		console.log('Parsed');
+		var cipherParams = CryptoJS.lib.CipherParams.create({
+		    ciphertext: CryptoJS.enc.Base64.parse(data)
+			});
+		console.log('Paramed');
+		var decryptedFromText = CryptoJS.AES.decrypt(cipherParams, key, { iv: iv});
+		console.log('decrypted');
+		return decryptedFromText.toString(CryptoJS.enc.Utf8);
+	}
+
+    function AESdecryptB64(ivCipherText, key){
+
+		console.log('Start Decr');
+		var ivB64 = ivCipherText.slice(0, 24);
+		var iv = atob(ivB64);
+		data = ivCipherText.slice(24);
+		console.log('Sliced');
+
+		key = CryptoJS.enc.Utf8.parse(key);
+		iv  = CryptoJS.enc.Utf8.parse(iv);
+		console.log('Parsed');
+		var cipherParams = CryptoJS.lib.CipherParams.create({
+		    ciphertext: CryptoJS.enc.Base64.parse(data)
+			});
+		console.log('Paramed');
+		var decryptedFromText = CryptoJS.AES.decrypt(cipherParams, key, { iv: iv});
+		console.log('decrypted');
+		return decryptedFromText.toString(CryptoJS.enc.Base64);
+	}
+
     </script>
     <div class="album bg-light rounded">
         <div class="container py-2 ">
@@ -41,46 +87,54 @@
 
             {% if device["camera"] %}
                 <div class="album bg-light rounded">
-                    <div class="container py-2 d-flex flex-column justify-around align-center">
+                    <div class="container py-2">
                         <h1 class="h3 mb-3 fw-normal text-center">Camera</h1>
                         <div class="container">
-                            <img id="video"></img>
-                            <img id="video_default" href=""></img>
-                        </div>
-                        <div>
-                            <button class="btn btn-primary" id="streaming" onclick="startCamera()">Activer Camera</button>
+                            <div class="container d-flex justify-content-center">
+                                <img id="video" src="/static/webcam.svg" width="400px" height="300px"></img>
+                            </div>
+                            <br/>
+                            <div class="d-flex justify-content-center">
+                                <button class="btn btn-primary" id="streaming" onclick="startCamera()">Activer Camera
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
+                <hr/>
             {% endif %}
             {% if device["micro"] %}
                 <h2>Micro</h2>
             {% endif %}
             {% if device["folder"] %}
-                <h2>Dossier partagé</h2>
                 <div class="album bg-light rounded">
                     <div class="container py-2">
                         <h1 class="h3 mb-3 fw-normal text-center">Partage de fichier</h1>
                         <div class="container">
-                            <div id="dropzone" class="file-upload-wrapper">
-                                <p>Drop ton fichier</p>
+                            <div id="dropzone"
+                                 class="file-upload-wrapper d-flex justify-content-center align-items-center border border-primary rounded"
+                                 style="height: 250px">
+
+                                <img class="" id="" src="/static/download.svg" width="200px" height="150px"></img>
+
                             </div>
-                            <div>
-                                <button class="btn btn-success" id="upload">Upload fichier</button>
-                                <button class="btn btn-outline-success" id="refresh" onclick="refreshFolder()">Refresh
+                            <br/>
+                            <div class="d-flex justify-content-center">
+                                <button class="btn btn-primary" id="upload">Upload fichier</button>
+                                <button class="btn btn-primary mx-3" id="refresh" onclick="refreshFolder()">Refresh
                                     Display
                                 </button>
                                 <button class="btn btn-primary" id="create">Create directory</button>
                             </div>
 
                             <div id="filelist">
-                                <h3>Documents</h3>
+                                <br/>
                                 <h4 id="pathCurrent"></h4>
                             </div>
                             <div id="dirListing">
 
                             </div>
-                            <table id="tablef" style="width:999px"></table>
+                            <table class="table my-3 table-bordered" id="tablef"></table>
                         </div>
                     </div>
                 </div>
@@ -91,7 +145,7 @@
                     const chunk_size_D = 64 * 1024;
                     var files = [];
                     var uploadDir = '';
-                    var dirCurrent = '/'; //au debut on es dans root
+                    var dirCurrent = '/'; //au debut on est dans root
 
                     //Upload
                     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -165,8 +219,10 @@
                     }
 
                     socket.on('allow-transfer', function (filename) {
-                        if (!filename) {
+                        console.log('transfer allowed for ' + filename)
+                        if (filename === '..Denied..') {
                             // the server rejected the transfer
+                            alert('Echec de téléversement');
                             onReadError.call(this, files[0].file, 0, 0, 'Upload rejected by server')
                         } else {
                             // the server allowed the transfer with the given filename
@@ -276,17 +332,18 @@
                     let head = document.createElement('tr');
                     let headName = document.createElement('th');
                     headName.innerHTML = '<h5>Name</h5>';
-                    let headTime = document.createElement('th');
-                    headTime.innerHTML = "<h5>Last Modified Time</h5>";
-                    let headSize = document.createElement('th');
-                    headSize.innerHTML = "<h5>Size</h5>";
                     let headDownload = document.createElement('th');
                     headDownload.innerHTML = "<h5>Download</h5>";
+                    let headTime = document.createElement('th');
+                    headTime.innerHTML = "<h5>Last Modified</h5>";
+                    let headSize = document.createElement('th');
+                    headSize.innerHTML = "<h5>Size</h5>";
+
 
                     head.appendChild(headName);
+                    head.appendChild(headDownload);
                     head.appendChild(headTime);
                     head.appendChild(headSize);
-                    head.appendChild(headDownload);
                     thead.appendChild(head);
 
                     // Adding the entire table to the body tag
@@ -296,12 +353,11 @@
 
                     function hrefAction(filename) {
                         if (filename.substr(filename.length - 1, 1) == '/') {//it's a dossier
-                            console.log("我要进这个文件夹" + dirCurrent + filename);
+                            console.log("Ouvrir le dossier" + dirCurrent + filename);
                             filename = filename.substr(0, filename.length - 1);
                             socket.emit('send urlCurrent', dirCurrent, filename);
                         } else {
-                            console.log('in hRef ' + filename);
-                            downloadME(filename);
+                            //Affichage pas encore fait
                         }
                     }
 
@@ -337,13 +393,17 @@
                             size.innerHTML = contents[i].fsize;
                             let download = document.createElement('td');
                             let hrefDownload = document.createElement('a');
-                            hrefDownload.href = "javascript:hrefAction(\"" + contents[i].fname + "\");";
-                            hrefDownload.innerHTML = 'Télécharger';
+                            hrefDownload.href = "javascript:downloadME(\"" + contents[i].fname + "\");";
+                            if(contents[i].fname.substr(contents[i].fname.length-1,1)=='/'){//it's a dossier
+                                hrefDownload.innerHTML='';
+                            }else{
+                                hrefDownload.innerHTML='Télécharger';
+                            }
                             download.appendChild(hrefDownload);
                             content.appendChild(name);
+                            content.appendChild(download);
                             content.appendChild(time);
                             content.appendChild(size);
-                            content.appendChild(download);
                             tbody.appendChild(content);
                         }
                     });
@@ -365,7 +425,7 @@
                     }
 
                     socket.on('update', function (dirCurrent) {
-                        socket.emit('update-device', dirCurrent)
+                        socket.emit('send urlCurrent', dirCurrent, '')
                     })
 
                     socket.on('alert', function (error) {
@@ -380,8 +440,12 @@
                 //             Camera            //
                 ///////////////////////////////////
                 socket.on('from Device', function (data) {
+                    console.log('Before Decrypt');
+                    var imageData = AESdecryptB64(data, SECRET);
+                    //imageData = btoa(imageData);
                     const image_element = document.getElementById('video');
-                    image_element.src = "data:image/jpeg;base64," + data;
+                    console.log(imageData);
+                    image_element.src = "data:image/jpeg;base64," + imageData;
                 });
 
                 function startCamera() {
@@ -404,6 +468,9 @@
                     streamButton.innerText = 'Activer Camera';
 
                     streamButton.setAttribute("onclick", 'startCamera()');
+
+                    const image_element = document.getElementById('video');
+                    image_element.src = "/static/webcam.svg";
                 });
 
                 ///////////////////////////////////

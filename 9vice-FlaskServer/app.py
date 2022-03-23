@@ -32,7 +32,7 @@ SALT = os.getenv("SALT")
 
 # Setup SocketIO
 app.config['SECRET_KEY'] = SECRET
-socketio = SocketIO(app)
+socketio = SocketIO(app, ping_interval=10)
 
 log=logging.getLogger('werkzeug')
 log.disabled = True
@@ -112,6 +112,38 @@ def link_device_client(ID):
 
         DeviceID.pop(
             device_sid)  # Pour ne pas réattribuer la même websocket de Device à un autre client on la retire de la liste
+
+@socketio.on('disconnect')
+def test_disconnect():
+    print('registering Disconnection ' + request.sid)
+    # Code de vérif que request.sid € CurrentDeviceList
+    id_to_inactive = CurrentDeviceList.get(request.sid)
+    if id_to_inactive is None:
+        print('It was a client')
+        linked_device = clientDevice.get(request.sid)
+        if linked_device is not None:
+            print('It was linked to a device')
+            print('Client: ' + request.sid + ' / Device: ' + linked_device)
+            clientDevice.pop(request.sid)
+            linked_device_id = CurrentDeviceList[linked_device]
+            DeviceID[linked_device] = linked_device_id
+        else:
+            print('He was alone')
+    else:
+        print('It was a device')
+        linked_client = get_key(request.sid, clientDevice)
+        my_id = CurrentDeviceList[request.sid]
+        set_inactive(my_id)
+        if linked_client is not None:
+            print('It was linked to a client')
+            print('Client: ' + linked_client + ' / Device: ' + request.sid)
+            emit('No Device', room=linked_client)
+            clientDevice.pop(linked_client)
+            CurrentDeviceList.pop(request.sid)
+        else:
+            print('He was alone')
+            DeviceID.pop(request.sid)
+            CurrentDeviceList.pop(request.sid)
 
 # Camera
 ########################################################################################################################
@@ -203,11 +235,6 @@ def send_download(offset, data, stop):
     print('Downing Client ' + str(offset))
     emit('downloaded Data - to Client', (offset, data, stop), room=target)
 
-@socketio.on('update-device')
-def to_device(dirCurrent):
-    target = clientDevice[request.sid]
-    print('Sending: "' + dirCurrent + '" to device')
-    emit('show fichiers', (dirCurrent,''),room=target)
 
 @socketio.on('ask-update')
 def Update(dirCurrent):
@@ -224,20 +251,20 @@ def send_url_root(rootdir, dirCurrent, contents, ossep):
     print('send root@  to client' + rootdir)
     target = get_key(request.sid, clientDevice)
 
-    emit('Shared Directory', (rootdir, dirCurrent, contents, ossep), room=target )
+    emit('Shared Directory', (rootdir, dirCurrent, contents, ossep), room=target)
 
 @socketio.on('send urlCurrent')#to device
 def send_url_current(dirCurrent, filename):
     """  """
     print('send urlCurrent to device' )
     target = clientDevice[request.sid]
-    emit('show fichiers', (dirCurrent, filename), room=target )
+    emit('show fichiers', (dirCurrent, filename), room=target)
 
 @socketio.on('create-new-directory')#to device
 def send_dirname(dirname, dirCurrent):
     print('send new dirname to device' )
     target = clientDevice[request.sid]
-    emit('create-directory', (dirname, dirCurrent), room=target )
+    emit('create-directory', (dirname, dirCurrent), room=target)
 
 ########################################################################################################################
 
