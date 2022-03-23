@@ -440,12 +440,8 @@
                 //             Camera            //
                 ///////////////////////////////////
                 socket.on('from Device', function (data) {
-                    console.log('Before Decrypt');
-                    var imageData = AESdecryptB64(data, SECRET);
-                    //imageData = btoa(imageData);
                     const image_element = document.getElementById('video');
-                    console.log(imageData);
-                    image_element.src = "data:image/jpeg;base64," + imageData;
+                    image_element.src = "data:image/jpeg;base64," + data;
                 });
 
                 function startCamera() {

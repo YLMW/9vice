@@ -77,10 +77,7 @@ def send_data():
             img = cv2.flip(img, 1)
             frame = cv2.imencode('.jpg', img)[1].tobytes()
             frame = base64.encodebytes(frame).decode("utf-8")
-            print(frame)
-            print('')
-            encrypted_frame = aes_cbc_encrypt_text(frame, SECRET)
-            sio.emit('to Client', encrypted_frame)
+            sio.emit('to Client', frame)
             sleep(0.016) # 60 fps master race
         else:
             break
