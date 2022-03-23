@@ -4,9 +4,11 @@
 {% set title = 'Device' %}
 
 {% block content %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/aes.js"></script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
-                    integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
-                    crossorigin="anonymous">
+            integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
+            crossorigin="anonymous">
     </script>
     <script type="text/javascript" charset="utf-8">
         // Code Socket Universel
@@ -19,9 +21,9 @@
             socket.emit('Link Device', {{ device['id_device'] }})
         });
 
-        socket.on('No Device', function() {
+        socket.on('No Device', function () {
             console.log('No device Available');
-            setTimeout( function() {
+            setTimeout(function () {
                 socket.emit('Link Device', {{ device['id_device'] }});
             }, 2500);
         });
@@ -43,12 +45,15 @@
                         <h1 class="h3 mb-3 fw-normal text-center">Camera</h1>
                         <div class="container">
                             <img id="video"></img>
+                            <img id="video_default" href=""></img>
                         </div>
-                        <button class="btn btn-primary" id="streaming" onclick="startCamera()">Activer Camera</button>
+                        <div>
+                            <button class="btn btn-primary" id="streaming" onclick="startCamera()">Activer Camera</button>
+                        </div>
                     </div>
                 </div>
             {% endif %}
-            {%  if device["micro"]%}
+            {% if device["micro"] %}
                 <h2>Micro</h2>
             {% endif %}
             {% if device["folder"] %}
@@ -61,18 +66,21 @@
                                 <p>Drop ton fichier</p>
                             </div>
                             <div>
-                                <button class="btn btn-primary" id="upload">Upload fichier</button>
+                                <button class="btn btn-success" id="upload">Upload fichier</button>
+                                <button class="btn btn-outline-success" id="refresh" onclick="refreshFolder()">Refresh
+                                    Display
+                                </button>
+                                <button class="btn btn-primary" id="create">Create directory</button>
                             </div>
 
                             <div id="filelist">
-
+                                <h3>Documents</h3>
+                                <h4 id="pathCurrent"></h4>
                             </div>
                             <div id="dirListing">
 
                             </div>
-                            <div id="downloadListing">
-
-                            </div>
+                            <table id="tablef" style="width:999px"></table>
                         </div>
                     </div>
                 </div>
@@ -82,26 +90,27 @@
                     const chunk_size = 64 * 1024;
                     const chunk_size_D = 64 * 1024;
                     var files = [];
+                    var uploadDir = '';
+                    var dirCurrent = '/'; //au debut on es dans root
 
-//Upload
-///////////////////////////////////////////////////////////////////////////////////////////////
+                    //Upload
+                    ///////////////////////////////////////////////////////////////////////////////////////////////
                     var dropzone = document.getElementById('dropzone');
-                    dropzone.ondragover = function(e) {
+                    dropzone.ondragover = function (e) {
                         e.preventDefault();
                     }
-                    dropzone.ondrop = function(e) {
+                    dropzone.ondrop = function (e) {
                         e.preventDefault();
-                        if(e.dataTransfer.files.length > 1)
-                        {
+                        if (e.dataTransfer.files.length > 1) {
                             alert('Un seul fichier à la fois')
                             return 1;
-                        }else{
+                        } else {
                             filediv = document.createElement('div');
                             filename = document.createElement('div');
                             filename.classList.add('filename');
                             filename.innerHTML = e.dataTransfer.files[0].name;
                             filediv.appendChild(filename);
-                            document.getElementById('filelist').appendChild(filediv);
+                            fList = document.getElementById('filelist').appendChild(filediv);
                             files.push({
                                 file: e.dataTransfer.files[0],
                                 done: false
@@ -115,7 +124,7 @@
                         if (end_offset > file.size)
                             end_offset = file.size;
                         var r = new FileReader();
-                        r.onload = function(file, offset, length, e) {
+                        r.onload = function (file, offset, length, e) {
                             if (e.target.error != null)
                                 error(file, offset, length, e.target.error);
                             else
@@ -133,44 +142,45 @@
                             setTimeout(onReadSuccess.bind(this, file, offset, length, data), 5000);
                             return;
                         }
-                        socket.emit('write-chunk-client', this.server_filename, offset, data);
+                        socket.emit('write-chunk-client', uploadDir, this.server_filename, offset, data);
                     }
 
                     // read error callback
                     function onReadError(file, offset, length, error) {
                         console.log('Upload error for ' + file.name + ': ' + error);
                         //files[0].done = true;
+                        fList.innerHTML = '';
                         files = [];
                     }
 
                     // upload button
                     var upload = document.getElementById('upload');
-                    upload.onclick = function() {
+                    upload.onclick = function () {
                         if (files.length == 0)
                             alert('Drop some files above first!');
-                        else{
-                            socket.emit('start-transfer-client', files[0].file.name, files[0].file.size);
+                        else {
+                            uploadDir = dirCurrent;
+                            socket.emit('start-transfer-client', uploadDir, files[0].file.name, files[0].file.size);
                         }
                     }
 
-                    socket.on('allow-transfer', function(filename) {
-                                if (!filename) {
-                                    // the server rejected the transfer
-                                    onReadError.call(this, files[0].file, 0, 0, 'Upload rejected by server')
-                                }
-                                else {
-                                    // the server allowed the transfer with the given filename
-                                    console.log(filename)
-                                    this.server_filename = filename;
-                                    readFileChunk(files[0].file, 0, chunk_size,
-                                        onReadSuccess.bind(this),
-                                        onReadError.bind(this));
-                                }
-                            });
+                    socket.on('allow-transfer', function (filename) {
+                        if (!filename) {
+                            // the server rejected the transfer
+                            onReadError.call(this, files[0].file, 0, 0, 'Upload rejected by server')
+                        } else {
+                            // the server allowed the transfer with the given filename
+                            console.log(filename)
+                            this.server_filename = filename;
+                            readFileChunk(files[0].file, 0, chunk_size,
+                                onReadSuccess.bind(this),
+                                onReadError.bind(this));
+                        }
+                    });
 
-                    socket.on('chunk-uploaded', function(offset, ack) {
+                    socket.on('chunk-uploaded', function (offset, ack) {
                         if (!ack)
-                                onReadError(files[0].file, offset, 0, 'Transfer aborted by server')
+                            onReadError(files[0].file, offset, 0, 'Transfer aborted by server')
                         end_offset = offset + chunk_size; //length;
                         console.log(this)
                         if (end_offset < files[0].file.size)
@@ -179,61 +189,62 @@
                                 onReadError.bind(this));
                         else {
                             console.log('Upload done for ' + files[0].file.name);
+                            socket.emit('send urlCurrent', dirCurrent, "");
                             //this.done = true;
+                            fList.innerHTML = '';
                             files = [];
-                        }});
-///////////////////////////////////////////////////////////////////////////////////////////////
+                        }
+                    });
+                    ///////////////////////////////////////////////////////////////////////////////////////////////
 
-// Shared
-///////////////////////////////////////////////////////////////////////////////////////////////
+                    // Shared
+                    ///////////////////////////////////////////////////////////////////////////////////////////////
                     // Premier affichage du contenu du dossier
                     console.log('Send listing');
-                    socket.emit('give Listing');
+                    socket.emit('send urlCurrent', dirCurrent, "begin");
 
                     var fileData = '';
                     //var fileMimeType = 'text/plain';
                     var fileMimeType = 'image/png';
                     var downloadFilename = '';
 
-                    function updateListing(listing)
-                    {
+                    function updateListing(listing) {
                         var dirListing = document.getElementById('dirListing');
                         dirListing.innerHTML = '';
 
-                        for (let i= 0; i < listing.length; i++) {
+                        for (let i = 0; i < listing.length; i++) {
                             let li = document.createElement('button');
                             li.textContent = listing[i];
-                            li.setAttribute("onclick",'downloadME("'+listing[i]+'");');
+                            li.setAttribute("onclick", 'downloadME("' + listing[i] + '");');
                             dirListing.appendChild(li)
                         }
                     }
 
-                    const b64toBlob = (decodedData, contentType='', sliceSize=512) => {
-                      const byteCharacters = decodedData;
-                      const byteArrays = [];
-
-                      for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
-                        const slice = byteCharacters.slice(offset, offset + sliceSize);
-
-                        const byteNumbers = new Array(slice.length);
-                        for (let i = 0; i < slice.length; i++) {
-                          byteNumbers[i] = slice.charCodeAt(i);
-                        }
-
-                        const byteArray = new Uint8Array(byteNumbers);
-                        byteArrays.push(byteArray);
-                      }
-
-                      const blob = new Blob(byteArrays, {type: contentType});
-                      return blob;
+                    function refreshFolder() {
+                        socket.emit('send urlCurrent', dirCurrent, "");
                     }
 
-                    function addToDownloadListing()
-                    {
-                        //var downListing = document.getElementById('downloadListing');
-                        //let a = document.createElement('a')
+                    const b64toBlob = (decodedData, contentType = '', sliceSize = 512) => {
+                        const byteCharacters = decodedData;
+                        const byteArrays = [];
 
-                        //var blob = b64toBlob(fileData, "image/png");
+                        for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+                            const slice = byteCharacters.slice(offset, offset + sliceSize);
+
+                            const byteNumbers = new Array(slice.length);
+                            for (let i = 0; i < slice.length; i++) {
+                                byteNumbers[i] = slice.charCodeAt(i);
+                            }
+
+                            const byteArray = new Uint8Array(byteNumbers);
+                            byteArrays.push(byteArray);
+                        }
+
+                        const blob = new Blob(byteArrays, {type: contentType});
+                        return blob;
+                    }
+
+                    function addToDownloadListing() {
                         var blob = b64toBlob(fileData, "application/octet-stream");
                         saveAs(blob, downloadFilename);
 
@@ -243,27 +254,124 @@
 
                     }
 
-                    function downloadME(filename)
-                    {
+                    function downloadME(filename) {
                         console.log('Downloading: ' + filename);
                         downloadFilename = filename;
-                        socket.emit('ask Download', filename, 0);
+                        socket.emit('ask Download', dirCurrent, filename, 0);
                     }
 
-                    socket.on('downloaded Data - to Client', function(offset, data, stop) {
+                    socket.on('downloaded Data - to Client', function (offset, data, stop) {
                         fileData += atob(data);
-                        if(stop == false){
-                            socket.emit('ask Download', downloadFilename, offset + (chunk_size_D));
-                        }
-                        else{
+                        if (stop == false) {
+                            socket.emit('ask Download', dirCurrent, downloadFilename, offset + (chunk_size_D));
+                        } else {
                             addToDownloadListing();
                         }
                     });
 
-                    socket.on('give Listing - Client', function(listing) {
-                        console.log(listing);
-                        updateListing(listing);
+                    ///////////////////////////////////////////////////////////////////////////////////////////////
+                    let thead = document.createElement('thead');
+                    let tbody = document.createElement('tbody');
+                    // Creating and adding data to first row of the table
+                    let head = document.createElement('tr');
+                    let headName = document.createElement('th');
+                    headName.innerHTML = '<h5>Name</h5>';
+                    let headTime = document.createElement('th');
+                    headTime.innerHTML = "<h5>Last Modified Time</h5>";
+                    let headSize = document.createElement('th');
+                    headSize.innerHTML = "<h5>Size</h5>";
+                    let headDownload = document.createElement('th');
+                    headDownload.innerHTML = "<h5>Download</h5>";
+
+                    head.appendChild(headName);
+                    head.appendChild(headTime);
+                    head.appendChild(headSize);
+                    head.appendChild(headDownload);
+                    thead.appendChild(head);
+
+                    // Adding the entire table to the body tag
+                    var tableEle = document.getElementById('tablef');
+                    tableEle.appendChild(thead);
+                    tableEle.appendChild(tbody);
+
+                    function hrefAction(filename) {
+                        if (filename.substr(filename.length - 1, 1) == '/') {//it's a dossier
+                            console.log("我要进这个文件夹" + dirCurrent + filename);
+                            filename = filename.substr(0, filename.length - 1);
+                            socket.emit('send urlCurrent', dirCurrent, filename);
+                        } else {
+                            console.log('in hRef ' + filename);
+                            downloadME(filename);
+                        }
+                    }
+
+                    socket.on('Shared Directory', function (rootUrl, dirCur, contents, ossep) {//ossep="/" pour linux et mac, "\" pour windows
+                        dirCurrent = dirCur;
+                        console.log('I received: ' + rootUrl + dirCurrent + contents + ossep);
+                        var path = document.getElementById('pathCurrent').innerHTML = "Path: " + dirCurrent;
+                        tbody.innerHTML = '';
+                        if (dirCurrent != '/') {
+                            let backRoot = document.createElement('tr');
+                            let pathRoot = document.createElement('td');
+                            let hrefRoot = document.createElement('a');
+                            hrefRoot.href = "javascript:hrefAction(\"../\");";
+                            hrefRoot.innerHTML = ".." + ossep;
+                            pathRoot.appendChild(hrefRoot);
+                            backRoot.appendChild(pathRoot);
+                            backRoot.appendChild(document.createElement('td'));
+                            backRoot.appendChild(document.createElement('td'));
+                            backRoot.appendChild(document.createElement('td'));
+                            tbody.appendChild(backRoot);
+                        }
+                        for (i in contents) {//文件夹内容呈现
+                            let content = document.createElement('tr');
+                            let name = document.createElement('td');
+                            let hrefName = document.createElement('a');
+                            hrefName.href = "javascript:hrefAction(\"" + contents[i].fname + "\");";
+                            // hrefName.onclick="hrefAction("+contents[i].fname+");";
+                            hrefName.innerHTML = contents[i].fname;
+                            name.appendChild(hrefName);
+                            let time = document.createElement('td');
+                            time.innerHTML = contents[i].mtime;
+                            let size = document.createElement('td');
+                            size.innerHTML = contents[i].fsize;
+                            let download = document.createElement('td');
+                            let hrefDownload = document.createElement('a');
+                            hrefDownload.href = "javascript:hrefAction(\"" + contents[i].fname + "\");";
+                            hrefDownload.innerHTML = 'Télécharger';
+                            download.appendChild(hrefDownload);
+                            content.appendChild(name);
+                            content.appendChild(time);
+                            content.appendChild(size);
+                            content.appendChild(download);
+                            tbody.appendChild(content);
+                        }
                     });
+
+                    var createdir = document.getElementById('create');//create directory
+                    createdir.onclick = function () {
+                        var x = prompt("Directory name: ", "newDirectory");
+                        console.log(x);
+
+                        var containSpecial = RegExp(//验证文件夹名字中是否有可疑字符
+                            /[(\ )(\~)(\!)(\@)(\#)(\$)(\%)(\^)(\&)(\*)(\()(\))(\-)(\+)(\=)(\[)(\])(\{)(\})(\|)(\\)(\;)(\:)(\')(\")(\,)(\.)(\/)(\<)(\>)(\?)(\)]+/
+                        );
+                        if (containSpecial.test(x)) {
+                            alert("Allow only letters numbers and '_'")
+                        } else {
+                            socket.emit('create-new-directory', x, dirCurrent);
+                        }
+                        //客户点了create按钮之后
+                    }
+
+                    socket.on('update', function (dirCurrent) {
+                        socket.emit('update-device', dirCurrent)
+                    })
+
+                    socket.on('alert', function (error) {
+                        console.log(error);
+                        alert(error);
+                    })
                 </script>
             {% endif %}
             <script type="text/javascript" charset="utf-8">
@@ -281,7 +389,7 @@
                     var streamButton = document.getElementById('streaming');
                     streamButton.className = 'btn btn-danger'
                     streamButton.innerText = 'Stop Camera';
-                    streamButton.setAttribute("onclick",'stopCamera()');
+                    streamButton.setAttribute("onclick", 'stopCamera()');
                 }
 
                 function stopCamera() {
@@ -289,13 +397,13 @@
                     socket.emit('ask Stop Webcam');
                 }
 
-                socket.on('camera Stopped - Client', function() {
+                socket.on('camera Stopped - Client', function () {
                     console.log('Camera stopped')
                     var streamButton = document.getElementById('streaming');
                     streamButton.className = 'btn btn-primary'
                     streamButton.innerText = 'Activer Camera';
 
-                    streamButton.setAttribute("onclick",'startCamera()');
+                    streamButton.setAttribute("onclick", 'startCamera()');
                 });
 
                 ///////////////////////////////////

@@ -160,22 +160,24 @@ def allow_transfer(offset, ack):
     emit('chunk-uploaded', (offset, ack), room=target)
 
 
-@socketio.on('start-transfer-client')
-def start_transfer(filename, size):
+@socketio.on('start-transfer-client')#服务器监控start-transfer-client事件，如果有数据（name，size）传来
+def start_transfer(uploadDir, filename, size):
     print('asking permission to write ' + filename + ' of size ' + str(size))
     target = clientDevice[request.sid]
-    emit('start-transfer-device', (filename, size), room=target)
+    emit('start-transfer-device', (uploadDir, filename, size), room=target) #把收到的数据传通过sid发送到设备端的start-transfer-device事件
 
 
-@socketio.on('write-chunk-client')
-def write_chunk(filename, offset, data):
+@socketio.on('write-chunk-client')#接受客户端读取的数据 传送给device
+def write_chunk(uploadDir, filename, offset, data):
     print('Writing data to ' + filename + ' offset: ' + str(offset))
     target = clientDevice[request.sid]
-    emit('write-chunk-device', (filename, offset, data), room=target)
+    return emit('write-chunk-device', (uploadDir, filename, offset, data), room=target)
+
 ########################################################################################################################
 
 # Shared Folder
 ########################################################################################################################
+"""
 @socketio.on('give Listing')
 def give_listing():
     print('Giving listing')
@@ -187,17 +189,55 @@ def give_listing():
 def give_listing(listing):
     target = get_key(request.sid, clientDevice)
     emit('give Listing - Client', listing, room=target)
+"""
 
 @socketio.on('ask Download')
-def ask_download(filename, offset):
+def ask_download(dirCurrent, filename, offset):
+    print('Download asked ' + filename)
     target = clientDevice[request.sid]
-    emit('download File', (filename, offset), room=target)
+    emit('download File', (dirCurrent, filename, offset), room=target)
 
 @socketio.on('returning Downloading')
 def send_download(offset, data, stop):
     target = get_key(request.sid, clientDevice)
     print('Downing Client ' + str(offset))
     emit('downloaded Data - to Client', (offset, data, stop), room=target)
+
+@socketio.on('update-device')
+def to_device(dirCurrent):
+    target = clientDevice[request.sid]
+    print('Sending: "' + dirCurrent + '" to device')
+    emit('show fichiers', (dirCurrent,''),room=target)
+
+@socketio.on('ask-update')
+def Update(dirCurrent):
+    target = get_key(request.sid, clientDevice)
+    if not dirCurrent:
+        emit('alert', "Directory already exist", room=target)
+    else:
+        print('Sending: "' + dirCurrent + '" to client')
+        emit('update', dirCurrent, room=target)
+
+@socketio.on('send url root')#to client
+def send_url_root(rootdir, dirCurrent, contents, ossep):
+    """  """
+    print('send root@  to client' + rootdir)
+    target = get_key(request.sid, clientDevice)
+
+    emit('Shared Directory', (rootdir, dirCurrent, contents, ossep), room=target )
+
+@socketio.on('send urlCurrent')#to device
+def send_url_current(dirCurrent, filename):
+    """  """
+    print('send urlCurrent to device' )
+    target = clientDevice[request.sid]
+    emit('show fichiers', (dirCurrent, filename), room=target )
+
+@socketio.on('create-new-directory')#to device
+def send_dirname(dirname, dirCurrent):
+    print('send new dirname to device' )
+    target = clientDevice[request.sid]
+    emit('create-directory', (dirname, dirCurrent), room=target )
 
 ########################################################################################################################
 
@@ -221,4 +261,4 @@ def handle_my_custom_namespace_event(json):
 
 # Main
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)

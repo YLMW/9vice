@@ -8,10 +8,10 @@ import os
 
 class AESCipher(object):
 
-    def __init__(self):
+    def __init__(self, SECRET_KEY):
         env_path = os.getcwd() + "/.env"
         load_dotenv(dotenv_path=env_path)
-        SECRET = os.getenv("SECRET_KEY")
+        SECRET = SECRET_KEY
         self.bs = AES.block_size
         self.key = hashlib.sha256(SECRET.encode()).digest()
 
