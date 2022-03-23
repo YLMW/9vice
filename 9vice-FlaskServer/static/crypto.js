@@ -63,8 +63,5 @@ function AESencrypt(plain, key) {
 		return decryptedFromText.toString(CryptoJS.enc.Utf8);
 	}
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Decrypt AES256-CBC with iv
-function AESdecrypt(cipher, key) {
-    plain = CryptoJS.AES.decrypt(cipher, key, {iv: iv});
-}
+
 

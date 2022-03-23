@@ -16,7 +16,6 @@
         var pass = prompt("Entrez la clé secrète de votre device pour pouvoir déchiffrer les communication")
         var SECRET = CryptoJS.SHA256(pass).toString(); // SHA256
 	    SECRET = SECRET.slice(0,32);
-        console.log(SECRET)
 
         var socket = io();
         var device = '';
@@ -42,42 +41,19 @@
 
         function AESdecrypt(ivCipherText, key){
 
-		console.log('Start Decr');
-		var ivB64 = ivCipherText.slice(0, 24);
+        var ivB64 = ivCipherText.slice(0, 24);
 		var iv = atob(ivB64);
-		data = ivCipherText.slice(24);
-		console.log('Sliced');
+		var cipherText = ivCipherText.slice(24);
 
 		key = CryptoJS.enc.Utf8.parse(key);
 		iv  = CryptoJS.enc.Utf8.parse(iv);
-		console.log('Parsed');
+
 		var cipherParams = CryptoJS.lib.CipherParams.create({
-		    ciphertext: CryptoJS.enc.Base64.parse(data)
+		    ciphertext: CryptoJS.enc.Base64.parse(cipherText)
 			});
-		console.log('Paramed');
+
 		var decryptedFromText = CryptoJS.AES.decrypt(cipherParams, key, { iv: iv});
-		console.log('decrypted');
 		return decryptedFromText.toString(CryptoJS.enc.Utf8);
-	}
-
-    function AESdecryptB64(ivCipherText, key){
-
-		console.log('Start Decr');
-		var ivB64 = ivCipherText.slice(0, 24);
-		var iv = atob(ivB64);
-		data = ivCipherText.slice(24);
-		console.log('Sliced');
-
-		key = CryptoJS.enc.Utf8.parse(key);
-		iv  = CryptoJS.enc.Utf8.parse(iv);
-		console.log('Parsed');
-		var cipherParams = CryptoJS.lib.CipherParams.create({
-		    ciphertext: CryptoJS.enc.Base64.parse(data)
-			});
-		console.log('Paramed');
-		var decryptedFromText = CryptoJS.AES.decrypt(cipherParams, key, { iv: iv});
-		console.log('decrypted');
-		return decryptedFromText.toString(CryptoJS.enc.Base64);
 	}
 
     </script>
@@ -300,6 +276,41 @@
                         return blob;
                     }
 
+                    var v = document.createElement('div');
+                    function showFile(){
+                        var blob = b64toBlob(fileData, "application/octet-stream");
+                        var img = document.createElement('img');
+                        var objectUrl = window.URL.createObjectURL(blob);
+                        img.src = objectUrl;
+                        {#window.open(objectUrl, '_blank')#}
+                        img.onload = function(){
+                        window.URL.revokeObjectURL(objectUrl);
+                        };
+                        d = document.getElementById("main");
+                        v.innerHTML=''
+                        v.appendChild(img);
+                        document.body.appendChild(v);
+                        fileData = '';
+                        fileMimeType = '';
+                        downloadFilename = '';
+                    }
+
+                    function showME(filename) {
+                        console.log('Reading: ' + filename);
+                        downloadFilename = filename;
+                        socket.emit('ask show', dirCurrent, filename, 0);
+                    }
+
+                    socket.on('show Data - to Client', function (offset, data, stop) {
+                        fileData += atob(data);
+                        if (stop == false) {
+                            socket.emit('ask Download', dirCurrent, downloadFilename, offset + (chunk_size_D));
+                        } else {
+                            showFile();
+                        }
+                    });
+
+
                     function addToDownloadListing() {
                         var blob = b64toBlob(fileData, "application/octet-stream");
                         saveAs(blob, downloadFilename);
@@ -357,7 +368,7 @@
                             filename = filename.substr(0, filename.length - 1);
                             socket.emit('send urlCurrent', dirCurrent, filename);
                         } else {
-                            //Affichage pas encore fait
+                            showME(filename)
                         }
                     }
 
@@ -440,8 +451,9 @@
                 //             Camera            //
                 ///////////////////////////////////
                 socket.on('from Device', function (data) {
+                    imageData = AESdecrypt(data, SECRET);
                     const image_element = document.getElementById('video');
-                    image_element.src = "data:image/jpeg;base64," + data;
+                    image_element.src = "data:image/jpeg;base64," + imageData;
                 });
 
                 function startCamera() {

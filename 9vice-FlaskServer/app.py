@@ -236,6 +236,18 @@ def send_download(offset, data, stop):
     emit('downloaded Data - to Client', (offset, data, stop), room=target)
 
 
+@socketio.on('ask show')
+def ask_show(dirCurrent, filename, offset):
+    print('Show asked ' + filename)
+    target = clientDevice[request.sid]
+    emit('show File', (dirCurrent, filename, offset), room=target)
+
+@socketio.on('returning Reading')
+def send_read(offset, data, stop):
+    target = get_key(request.sid, clientDevice)
+    print('Reading Client ' + str(offset))
+    emit('show Data - to Client', (offset, data, stop), room=target)
+
 @socketio.on('ask-update')
 def Update(dirCurrent):
     target = get_key(request.sid, clientDevice)
@@ -256,9 +268,12 @@ def send_url_root(rootdir, dirCurrent, contents, ossep):
 @socketio.on('send urlCurrent')#to device
 def send_url_current(dirCurrent, filename):
     """  """
-    print('send urlCurrent to device' )
-    target = clientDevice[request.sid]
-    emit('show fichiers', (dirCurrent, filename), room=target)
+    try:
+        print('send urlCurrent to device')
+        target = clientDevice[request.sid]
+        emit('show fichiers', (dirCurrent, filename), room=target)
+    except Exception as e:
+        print(e)
 
 @socketio.on('create-new-directory')#to device
 def send_dirname(dirname, dirCurrent):

@@ -23,10 +23,12 @@ CLIENT_KEY = os.getenv("CLIENT_KEY")
 SHARED_FOLDER = os.getenv("FILE_PATH")
 
 
-SECRET = hashlib.sha256(CLIENT_KEY.encode()).hexdigest()[0:32]
+SECRET = hashlib.sha256(CLIENT_KEY.replace("\n", "").encode()).hexdigest()[0:32]
 print('Secret = ' + SECRET)
 
-URL = 'http://localhost:5000/'
+print(SECRET)
+
+URL = 'http://127.0.0.1:5000'
 
 
 ID = -1
@@ -71,13 +73,11 @@ def send_data():
     while (cap.isOpened() and CameraON):
         ret, img = cap.read()
         if ret:
-            img = cv2.resize(img, (0, 0), fx=0.25, fy=0.25)
+            img = cv2.resize(img, (0, 0), fx=1, fy=1)
             img = cv2.flip(img, 1)
             frame = cv2.imencode('.jpg', img)[1].tobytes()
             frame = base64.encodebytes(frame).decode("utf-8")
-            enc = aes_cbc_encrypt_text(frame, SECRET)
-            sio.emit('to Client', enc)
-            #sleep(0.016) # 60 fps master race
+            sio.emit('to Client', frame)
             sleep(0.016) # 60 fps master race
         else:
             break
@@ -214,35 +214,6 @@ def check_download(dirCurrent, filename, offset):
         print('IO error')
         return False
     sio.emit('returning Downloading', (offset, data, stop))
-
-    @sio.on('show File')
-    def check_show(dirCurrent, filename, offset):
-        print('reading : ' + rootdir + dirCurrent + filename)
-        root, ext = os.path.splitext(filename)
-        if not os.path.exists(rootdir + dirCurrent + filename):
-            print('file does not exist')
-            return False
-        if root.__contains__('.'):
-            print('Directory traversal ?')
-            return False
-
-        try:
-            with open(rootdir + dirCurrent + filename, 'r+b') as f:
-                f.seek(offset)
-                data = f.read(chunk_size)
-                data = base64.b64encode(data).decode('utf-8')
-                if offset + (chunk_size) >= os.path.getsize(rootdir + dirCurrent + filename):
-                    stop = True
-                else:
-                    stop = False
-        except IOError:
-            print('IO error')
-            return False
-        sio.emit('returning Reading', (offset, data, stop))
-
-
-
-
 
 @sio.event
 def connect():
