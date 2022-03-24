@@ -24,9 +24,9 @@ SHARED_FOLDER = os.getenv("FILE_PATH")
 
 
 SECRET = hashlib.sha256(CLIENT_KEY.encode()).hexdigest()[0:32]
-print('Secret = ' + SECRET)
+# print('Secret = ' + SECRET)
 
-URL = 'http://localhost:5000/'
+URL = 'https://groupe7.algonics.net/'
 
 
 ID = -1
